@@ -72,8 +72,19 @@ struct CollectionDetailView: View {
                                 if let shop = recognizedData.shopName { receipt.shopName = shop }
                                 if let date = recognizedData.purchaseDate { receipt.purchaseDate = date }
                                 if let total = recognizedData.totalAmount { receipt.totalAmount = total }
-                                if let taxPct = recognizedData.taxPercentage { receipt.taxPercentage = taxPct }
-                                if let exclTax = recognizedData.amountWithoutTax { receipt.amountWithoutTax = exclTax }
+                                if let taxPct = recognizedData.taxPercentage {
+                                    receipt.taxPercentage = taxPct
+                                }
+                                if let exclTax = recognizedData.amountWithoutTax {
+                                    receipt.amountWithoutTax = exclTax
+                                } else if receipt.totalAmount > 0 {
+                                    // OCR found total but not excl-tax: derive it
+                                    if receipt.taxPercentage > 0 {
+                                        receipt.amountWithoutTax = receipt.totalAmount / (1.0 + receipt.taxPercentage / 100.0)
+                                    } else {
+                                        receipt.amountWithoutTax = receipt.totalAmount
+                                    }
+                                }
 
                                 editingReceipt = receipt
                                 isProcessingOCR = false

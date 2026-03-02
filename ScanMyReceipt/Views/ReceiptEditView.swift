@@ -69,6 +69,7 @@ struct ReceiptEditView: View {
                         Text("9%").tag(9.0)
                         Text("21%").tag(21.0)
                     }
+                    .pickerStyle(.segmented)
                     .onChange(of: receipt.taxPercentage) { _ in
                         recalculateIfNeeded()
                     }
@@ -118,6 +119,10 @@ struct ReceiptEditView: View {
             .onAppear {
                 totalAmountText = receipt.totalAmount > 0 ? String(format: "%.2f", receipt.totalAmount) : ""
                 amountWithoutTaxText = receipt.amountWithoutTax > 0 ? String(format: "%.2f", receipt.amountWithoutTax) : ""
+                // Auto-calculate excl-tax when total is known but excl-tax wasn't set (e.g. OCR only found total)
+                if receipt.totalAmount > 0 && receipt.amountWithoutTax == 0 {
+                    recalculateIfNeeded()
+                }
             }
         }
     }

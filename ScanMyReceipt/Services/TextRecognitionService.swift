@@ -112,12 +112,15 @@ class TextRecognitionService {
 
     /// Shop name is typically in the first few lines of the receipt.
     private func extractShopName(from lines: [String]) -> String? {
-        for line in lines.prefix(5) {
+        for line in lines.prefix(6) {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             guard trimmed.count >= 2,
                   !looksLikeAmount(trimmed),
                   !looksLikeDate(trimmed),
-                  !looksLikeAddress(trimmed) else { continue }
+                  !looksLikeAddress(trimmed),
+                  !looksLikePhoneNumber(trimmed),
+                  !looksLikeNumericCode(trimmed),
+                  !looksLikeReceiptKeyword(trimmed) else { continue }
             return trimmed
         }
         return nil
@@ -200,20 +203,21 @@ class TextRecognitionService {
     private func extractTaxPercentage(from text: String) -> Double? {
         let lower = text.lowercased()
 
-        // Explicit keyword + percentage combos
+        // Explicit keyword + percentage combos (handles both "21%" and "21,00%")
         let patterns: [(String, Double)] = [
             ("btw\\s*(?:hoog)?\\s*21", 21.0),
-            ("21\\s*%\\s*btw", 21.0),
-            ("btw\\s*21\\s*%", 21.0),
+            ("21[,.]?\\d*\\s*%\\s*btw", 21.0),
+            ("btw\\s*21[,.]?\\d*\\s*%", 21.0),
             ("btw\\s*(?:laag)?\\s*9", 9.0),
+            ("9[,.]00\\s*%", 9.0),
             ("9\\s*%\\s*btw", 9.0),
-            ("btw\\s*9\\s*%", 9.0),
+            ("btw\\s*9[,.]?\\d*\\s*%", 9.0),
             ("btw\\s*0", 0.0),
-            ("0\\s*%\\s*btw", 0.0),
+            ("0[,.]?\\d*\\s*%\\s*btw", 0.0),
             ("vat\\s*21", 21.0),
-            ("21\\s*%\\s*vat", 21.0),
+            ("21[,.]?\\d*\\s*%\\s*vat", 21.0),
             ("vat\\s*9", 9.0),
-            ("9\\s*%\\s*vat", 9.0),
+            ("9[,.]?\\d*\\s*%\\s*vat", 9.0),
         ]
 
         for (pattern, pct) in patterns {
@@ -223,15 +227,26 @@ class TextRecognitionService {
             }
         }
 
-        // Generic: look for percentage near BTW/VAT
+        // Generic: look for percentage near BTW/VAT keywords.
+        // Handles both "9%" and "9,00%" comma-decimal formats.
         if lower.contains("btw") || lower.contains("vat") {
-            let pctPattern = "(\\d{1,2})\\s*%"
+            let pctPattern = "(\\d{1,2})[,.]?\\d*\\s*%"
             if let regex = try? NSRegularExpression(pattern: pctPattern),
                let match = regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)),
                let range = Range(match.range(at: 1), in: lower) {
                 if let pct = Double(String(lower[range])), [0, 9, 21].contains(Int(pct)) {
                     return pct
                 }
+            }
+        }
+
+        // Also look for "tarief" (Dutch for rate/tariff) lines like "9,00% A"
+        let tariefPattern = "(?:tarief|rate).*?(\\d{1,2})[,.]\\d+\\s*%"
+        if let regex = try? NSRegularExpression(pattern: tariefPattern),
+           let match = regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)),
+           let range = Range(match.range(at: 1), in: lower) {
+            if let pct = Double(String(lower[range])), [0, 9, 21].contains(Int(pct)) {
+                return pct
             }
         }
 
@@ -298,19 +313,57 @@ class TextRecognitionService {
     }
 
     private func looksLikeDate(_ text: String) -> Bool {
-        let pattern = "^\\d{2}[\\-/\\.]\\d{2}[\\-/\\.]\\d{2,4}$"
+        // Matches "DD-MM-YYYY", "DD-MM-YYYY, HH:MM:SS", etc.
+        let pattern = "^\\d{2}[\\-/\\.]\\d{2}[\\-/\\.]\\d{2,4}(\\s*[,.]?\\s*\\d{2}[:\\.\\-]\\d{2}(:\\d{2})?)?$"
         return (try? NSRegularExpression(pattern: pattern))?
             .firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
 
     private func looksLikeAddress(_ text: String) -> Bool {
-        // Skip lines that are likely street addresses or postal codes
         let lower = text.lowercased()
-        let postalPattern = "\\b\\d{4}\\s*[a-z]{2}\\b"  // Dutch postal code: 1234 AB
+        // Dutch postal code: 1234 AB
+        let postalPattern = "\\b\\d{4}\\s*[a-z]{2}\\b"
         if let regex = try? NSRegularExpression(pattern: postalPattern),
            regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)) != nil {
             return true
         }
+        // Street address: word + number (e.g. "Vleutenseweg 169")
+        let streetPattern = "^[a-zA-Z]+\\s+\\d{1,5}$"
+        if let regex = try? NSRegularExpression(pattern: streetPattern),
+           regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil {
+            return true
+        }
         return false
+    }
+
+    private func looksLikePhoneNumber(_ text: String) -> Bool {
+        // Matches phone patterns: 06-12345678, +31 6 1234, 06 42126771, etc.
+        let cleaned = text.replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "-", with: "")
+            .replacingOccurrences(of: "+", with: "")
+        // Mostly digits (8+), possibly starting with 0 or country code
+        let digits = cleaned.filter { $0.isNumber }
+        return digits.count >= 8 && digits.count <= 15 && Double(cleaned) != nil
+    }
+
+    private func looksLikeNumericCode(_ text: String) -> Bool {
+        // Lines that are mostly numbers, hashes, stars — receipt codes, ticket IDs
+        let stripped = text.replacingOccurrences(of: " ", with: "")
+        let nonAlpha = stripped.filter { !$0.isLetter }
+        // If over 60% non-letter and contains digits, it's likely a code
+        let digits = stripped.filter { $0.isNumber }
+        return digits.count >= 3 && Double(nonAlpha.count) / Double(max(stripped.count, 1)) > 0.6
+    }
+
+    private func looksLikeReceiptKeyword(_ text: String) -> Bool {
+        let lower = text.lowercased()
+            .trimmingCharacters(in: .punctuationCharacters.union(.symbols).union(.whitespaces))
+        let keywords = [
+            "vat receipt", "btw bon", "copy", "kopie",
+            "kassabon", "receipt", "bon", "factuur", "invoice",
+            "welkom", "welcome"
+        ]
+        return keywords.contains(where: { lower.contains($0) })
+            || lower.allSatisfy({ $0 == "*" || $0 == " " })  // decorative lines like "** COPY 1 **"
     }
 }
