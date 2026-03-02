@@ -5,6 +5,8 @@ struct CollectionListView: View {
     @EnvironmentObject var viewModel: CollectionListViewModel
     @State private var showingNewCollection = false
     @State private var newCollectionName = ""
+    @State private var renamingCollection: ReceiptCollection?
+    @State private var renameText = ""
 
     var body: some View {
         List {
@@ -24,6 +26,15 @@ struct CollectionListView: View {
                         }
                     }
                     .padding(.vertical, 4)
+                }
+                .swipeActions(edge: .leading) {
+                    Button {
+                        renameText = collection.name
+                        renamingCollection = collection
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    .tint(.blue)
                 }
             }
             .onDelete(perform: viewModel.deleteCollection)
@@ -55,6 +66,22 @@ struct CollectionListView: View {
             }
             Button("Cancel", role: .cancel) {
                 newCollectionName = ""
+            }
+        }
+        .alert("Rename Collection", isPresented: Binding(
+            get: { renamingCollection != nil },
+            set: { if !$0 { renamingCollection = nil } }
+        )) {
+            TextField("Collection name", text: $renameText)
+            Button("Save") {
+                let name = renameText.trimmingCharacters(in: .whitespaces)
+                if !name.isEmpty, let collection = renamingCollection {
+                    viewModel.renameCollection(collection.id, to: name)
+                }
+                renamingCollection = nil
+            }
+            Button("Cancel", role: .cancel) {
+                renamingCollection = nil
             }
         }
     }

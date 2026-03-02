@@ -42,6 +42,12 @@ class CollectionListViewModel: ObservableObject {
         save()
     }
 
+    func renameCollection(_ id: UUID, to newName: String) {
+        guard let idx = collections.firstIndex(where: { $0.id == id }) else { return }
+        collections[idx].name = newName
+        save()
+    }
+
     func collection(for id: UUID) -> ReceiptCollection? {
         collections.first { $0.id == id }
     }

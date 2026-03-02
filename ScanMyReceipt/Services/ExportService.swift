@@ -33,20 +33,32 @@ class ExportService {
                         hasPages = true
                         context.beginPage()
 
+                        // Reserve space for the receipt number label at the top
+                        let labelHeight: CGFloat = 24.0
+                        let labelSpacing: CGFloat = 8.0
                         let availableWidth = pageWidth - 2 * margin
-                        let availableHeight = pageHeight - 2 * margin
+                        let availableHeight = pageHeight - 2 * margin - labelHeight - labelSpacing
                         let imageAspect = image.size.width / image.size.height
                         let areaAspect = availableWidth / availableHeight
 
+                        // Draw receipt number at top-left
+                        let labelAttributes: [NSAttributedString.Key: Any] = [
+                            .font: UIFont.boldSystemFont(ofSize: 14),
+                            .foregroundColor: UIColor.darkGray
+                        ]
+                        let label = receipt.receiptNumber as NSString
+                        label.draw(at: CGPoint(x: margin, y: margin), withAttributes: labelAttributes)
+
+                        let imageTop = margin + labelHeight + labelSpacing
                         let drawRect: CGRect
                         if imageAspect > areaAspect {
                             let w = availableWidth
                             let h = w / imageAspect
-                            drawRect = CGRect(x: margin, y: margin + (availableHeight - h) / 2, width: w, height: h)
+                            drawRect = CGRect(x: margin, y: imageTop + (availableHeight - h) / 2, width: w, height: h)
                         } else {
                             let h = availableHeight
                             let w = h * imageAspect
-                            drawRect = CGRect(x: margin + (availableWidth - w) / 2, y: margin, width: w, height: h)
+                            drawRect = CGRect(x: margin + (availableWidth - w) / 2, y: imageTop, width: w, height: h)
                         }
                         image.draw(in: drawRect)
                     }
