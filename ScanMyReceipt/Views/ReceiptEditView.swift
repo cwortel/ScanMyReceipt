@@ -52,7 +52,7 @@ struct ReceiptEditView: View {
                         Text("Total (incl. tax)")
                         Spacer()
                         Text("€")
-                        TextField("0.00", text: $totalAmountText)
+                        TextField("0,00", text: $totalAmountText)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
@@ -78,7 +78,7 @@ struct ReceiptEditView: View {
                         Text("Amount (excl. tax)")
                         Spacer()
                         Text("€")
-                        TextField("0.00", text: $amountWithoutTaxText)
+                        TextField("0,00", text: $amountWithoutTaxText)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
@@ -117,8 +117,8 @@ struct ReceiptEditView: View {
                 }
             }
             .onAppear {
-                totalAmountText = receipt.totalAmount > 0 ? String(format: "%.2f", receipt.totalAmount) : ""
-                amountWithoutTaxText = receipt.amountWithoutTax > 0 ? String(format: "%.2f", receipt.amountWithoutTax) : ""
+                totalAmountText = receipt.totalAmount > 0 ? receipt.totalAmount.dutchFormatted : ""
+                amountWithoutTaxText = receipt.amountWithoutTax > 0 ? receipt.amountWithoutTax.dutchFormatted : ""
                 // Auto-calculate excl-tax when total is known but excl-tax wasn't set (e.g. OCR only found total)
                 if receipt.totalAmount > 0 && receipt.amountWithoutTax == 0 {
                     recalculateIfNeeded()
@@ -137,11 +137,15 @@ struct ReceiptEditView: View {
         } else {
             receipt.amountWithoutTax = total
         }
-        amountWithoutTaxText = String(format: "%.2f", receipt.amountWithoutTax)
+        amountWithoutTaxText = receipt.amountWithoutTax.dutchFormatted
     }
 
     private func parseAmount(_ text: String) -> Double? {
-        Double(text.replacingOccurrences(of: ",", with: "."))
+        // Accept both comma (Dutch) and dot (English) input
+        let cleaned = text
+            .replacingOccurrences(of: ".", with: "")  // remove thousand separators
+            .replacingOccurrences(of: ",", with: ".") // comma → dot for Double parsing
+        return Double(cleaned)
     }
 
     private func removeImage(fileName: String) {

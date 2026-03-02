@@ -11,8 +11,25 @@ extension Date {
 }
 
 extension Double {
-    /// Formats as "€ 12.34"
+    /// Formats as "€ 1.234,56" using Dutch locale (comma decimal, dot thousands).
     var euroFormatted: String {
-        String(format: "€ %.2f", self)
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "EUR"
+        formatter.currencySymbol = "€"
+        formatter.locale = Locale(identifier: "nl_NL")
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: NSNumber(value: self)) ?? "€ 0,00"
+    }
+
+    /// Formats as "12,34" (no currency symbol) for text field display.
+    var dutchFormatted: String {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "nl_NL")
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = ""
+        return formatter.string(from: NSNumber(value: self)) ?? "0,00"
     }
 }
