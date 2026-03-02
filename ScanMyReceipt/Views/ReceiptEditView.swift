@@ -64,14 +64,32 @@ struct ReceiptEditView: View {
                             }
                     }
 
-                    Picker("Tax %", selection: $receipt.taxPercentage) {
-                        Text("0%").tag(0.0)
-                        Text("9%").tag(9.0)
-                        Text("21%").tag(21.0)
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: receipt.taxPercentage) { _ in
-                        recalculateIfNeeded()
+                    // Tax percentage — custom buttons for reliable tap handling
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Tax %")
+                        HStack(spacing: 0) {
+                            ForEach([0.0, 9.0, 21.0], id: \.self) { pct in
+                                Button {
+                                    receipt.taxPercentage = pct
+                                    recalculateIfNeeded()
+                                } label: {
+                                    Text("\(Int(pct))%")
+                                        .font(.subheadline.weight(.medium))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            receipt.taxPercentage == pct
+                                                ? Color.accentColor
+                                                : Color(.systemGray5)
+                                        )
+                                        .foregroundColor(
+                                            receipt.taxPercentage == pct ? .white : .primary
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
 
                     HStack {

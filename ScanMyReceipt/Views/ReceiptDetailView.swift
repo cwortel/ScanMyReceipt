@@ -7,10 +7,10 @@ struct CollectionDetailView: View {
     @EnvironmentObject var viewModel: CollectionListViewModel
 
     @State private var showingScanner = false
-    @State private var showingReceiptEdit = false
     @State private var showingExportOptions = false
     @State private var showingShareSheet = false
     @State private var isProcessingOCR = false
+    @State private var ocrProgress = ""
     @State private var exportFiles: [URL] = []
     @State private var editingReceipt: Receipt?
 
@@ -27,7 +27,6 @@ struct CollectionDetailView: View {
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 editingReceipt = receipt
-                                showingReceiptEdit = true
                             }
                     }
                     .onDelete { offsets in
@@ -60,36 +59,7 @@ struct CollectionDetailView: View {
                     DocumentCameraView(
                         onScanComplete: { images in
                             showingScanner = false
-                            let fileNames = viewModel.saveImages(images)
-                            let number = viewModel.nextReceiptNumber()
-                            isProcessingOCR = true
-
-                            TextRecognitionService.shared.recognizeReceipt(from: images) { recognizedData in
-                                var receipt = Receipt(
-                                    receiptNumber: number,
-                                    imageFileNames: fileNames
-                                )
-                                if let shop = recognizedData.shopName { receipt.shopName = shop }
-                                if let date = recognizedData.purchaseDate { receipt.purchaseDate = date }
-                                if let total = recognizedData.totalAmount { receipt.totalAmount = total }
-                                if let taxPct = recognizedData.taxPercentage {
-                                    receipt.taxPercentage = taxPct
-                                }
-                                if let exclTax = recognizedData.amountWithoutTax {
-                                    receipt.amountWithoutTax = exclTax
-                                } else if receipt.totalAmount > 0 {
-                                    // OCR found total but not excl-tax: derive it
-                                    if receipt.taxPercentage > 0 {
-                                        receipt.amountWithoutTax = receipt.totalAmount / (1.0 + receipt.taxPercentage / 100.0)
-                                    } else {
-                                        receipt.amountWithoutTax = receipt.totalAmount
-                                    }
-                                }
-
-                                editingReceipt = receipt
-                                isProcessingOCR = false
-                                showingReceiptEdit = true
-                            }
+                            processScannedImages(images)
                         },
                         onCancel: {
                             showingScanner = false
@@ -97,34 +67,29 @@ struct CollectionDetailView: View {
                     )
                     .ignoresSafeArea()
                 }
-                // Receipt edit sheet
-                .sheet(isPresented: $showingReceiptEdit) {
-                    if let receipt = editingReceipt {
-                        let isNew = !collection.receipts.contains { $0.id == receipt.id }
-                        ReceiptEditView(
-                            receipt: receipt,
-                            isNew: isNew,
-                            onSave: { updated in
-                                if isNew {
-                                    viewModel.addReceipt(updated, to: collectionID)
-                                } else {
-                                    viewModel.updateReceipt(updated, in: collectionID)
-                                }
-                                showingReceiptEdit = false
-                                editingReceipt = nil
-                            },
-                            onCancel: {
-                                // Clean up images for unsaved new receipts
-                                if isNew {
-                                    for fileName in receipt.imageFileNames {
-                                        PersistenceService.shared.deleteImage(fileName: fileName)
-                                    }
-                                }
-                                showingReceiptEdit = false
-                                editingReceipt = nil
+                // Receipt edit sheet — driven by editingReceipt (non-nil = show)
+                .sheet(item: $editingReceipt) { receipt in
+                    let isNew = !collection.receipts.contains { $0.id == receipt.id }
+                    ReceiptEditView(
+                        receipt: receipt,
+                        isNew: isNew,
+                        onSave: { updated in
+                            if isNew {
+                                viewModel.addReceipt(updated, to: collectionID)
+                            } else {
+                                viewModel.updateReceipt(updated, in: collectionID)
                             }
-                        )
-                    }
+                            editingReceipt = nil
+                        },
+                        onCancel: {
+                            if isNew {
+                                for fileName in receipt.imageFileNames {
+                                    PersistenceService.shared.deleteImage(fileName: fileName)
+                                }
+                            }
+                            editingReceipt = nil
+                        }
+                    )
                 }
                 // Export options
                 .confirmationDialog("Export Collection", isPresented: $showingExportOptions) {
@@ -148,7 +113,7 @@ struct CollectionDetailView: View {
                                 ProgressView()
                                     .scaleEffect(1.5)
                                     .tint(.primary)
-                                Text("Reading receipt…")
+                                Text(ocrProgress)
                                     .font(.headline)
                             }
                             .padding(24)
@@ -164,6 +129,59 @@ struct CollectionDetailView: View {
                     .foregroundColor(.secondary)
             }
         }
+    }
+
+    // MARK: - Scan Processing
+
+    /// Each scanned image becomes a separate receipt. OCR runs on each
+    /// individually and receipts are auto-saved to the collection.
+    private func processScannedImages(_ images: [UIImage]) {
+        guard !images.isEmpty else { return }
+        isProcessingOCR = true
+        let total = images.count
+
+        // Process each image sequentially to get correct receipt numbers
+        func processNext(index: Int) {
+            guard index < images.count else {
+                isProcessingOCR = false
+                ocrProgress = ""
+                return
+            }
+
+            ocrProgress = "Reading receipt \(index + 1) of \(total)\u{2026}"
+
+            let image = images[index]
+            let fileName = UUID().uuidString + ".jpg"
+            PersistenceService.shared.saveImage(image, fileName: fileName)
+
+            TextRecognitionService.shared.recognizeReceipt(from: [image]) { recognizedData in
+                let number = viewModel.nextReceiptNumber()
+                var receipt = Receipt(
+                    receiptNumber: number,
+                    imageFileNames: [fileName]
+                )
+                if let shop = recognizedData.shopName { receipt.shopName = shop }
+                if let date = recognizedData.purchaseDate { receipt.purchaseDate = date }
+                if let total = recognizedData.totalAmount { receipt.totalAmount = total }
+                if let taxPct = recognizedData.taxPercentage {
+                    receipt.taxPercentage = taxPct
+                }
+                if let exclTax = recognizedData.amountWithoutTax {
+                    receipt.amountWithoutTax = exclTax
+                } else if receipt.totalAmount > 0 {
+                    if receipt.taxPercentage > 0 {
+                        receipt.amountWithoutTax = receipt.totalAmount / (1.0 + receipt.taxPercentage / 100.0)
+                    } else {
+                        receipt.amountWithoutTax = receipt.totalAmount
+                    }
+                }
+
+                viewModel.addReceipt(receipt, to: collectionID)
+                processNext(index: index + 1)
+            }
+        }
+
+        processNext(index: 0)
     }
 
     // MARK: - Export helpers
