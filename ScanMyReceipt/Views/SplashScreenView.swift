@@ -38,7 +38,7 @@ struct SplashScreenView: View {
                 Spacer()
 
                 // Footer
-                Text("All rights reserved by Cirilo Wortel 2026")
+                Text("© 2026 Cirilo Wortel. All rights reserved.")
                     .font(.system(size: 12, weight: .regular, design: .rounded))
                     .foregroundColor(.secondary)
                     .opacity(footerOpacity)
