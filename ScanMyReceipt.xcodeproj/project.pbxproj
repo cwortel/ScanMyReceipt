@@ -23,6 +23,7 @@
 		AA100014 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100014 /* ShareSheet.swift */; };
 		AA100016 /* ImageViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100016 /* ImageViews.swift */; };
 		AA100017 /* TextRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100017 /* TextRecognitionService.swift */; };
+		AA100019 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100019 /* SplashScreenView.swift */; };
 		AA100018 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB100018 /* Assets.xcassets */; };
 		AA200001 /* ScanMyReceiptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB200001 /* ScanMyReceiptTests.swift */; };
 		AA300001 /* ScanMyReceiptUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB300001 /* ScanMyReceiptUITests.swift */; };
@@ -63,6 +64,7 @@
 		AB100015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB100016 /* ImageViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViews.swift; sourceTree = "<group>"; };
 		AB100017 /* TextRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRecognitionService.swift; sourceTree = "<group>"; };
+		AB100019 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
 		AB100018 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AB200001 /* ScanMyReceiptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMyReceiptTests.swift; sourceTree = "<group>"; };
 		AB300001 /* ScanMyReceiptUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMyReceiptUITests.swift; sourceTree = "<group>"; };
@@ -175,6 +177,7 @@
 				AB100013 /* ScannerView.swift */,
 				AB100014 /* ShareSheet.swift */,
 				AB100016 /* ImageViews.swift */,
+				AB100019 /* SplashScreenView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -350,6 +353,7 @@
 				AA100014 /* ShareSheet.swift in Sources */,
 				AA100016 /* ImageViews.swift in Sources */,
 				AA100017 /* TextRecognitionService.swift in Sources */,
+				AA100019 /* SplashScreenView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

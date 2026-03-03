@@ -21,6 +21,18 @@ struct CollectionDetailView: View {
     var body: some View {
         Group {
             if let collection = collection {
+                ZStack {
+                    Color(.systemGroupedBackground)
+                        .ignoresSafeArea()
+                    VStack {
+                        Spacer()
+                        Image("Logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 100)
+                            .padding(.bottom, 40)
+                    }
+
                 List {
                     ForEach(collection.receipts) { receipt in
                         ReceiptRow(receipt: receipt)
@@ -41,6 +53,7 @@ struct CollectionDetailView: View {
                             .padding(.top, 40)
                     }
                 }
+                .scrollContentBackground(.hidden)
                 .navigationTitle(collection.name)
                 .toolbar {
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -124,6 +137,7 @@ struct CollectionDetailView: View {
                         }
                     }
                 }
+                } // ZStack
             } else {
                 Text("Collection not found")
                     .foregroundColor(.secondary)

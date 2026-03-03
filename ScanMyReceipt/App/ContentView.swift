@@ -1,10 +1,27 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var showSplash = true
+
     var body: some View {
-        NavigationView {
-            CollectionListView()
+        ZStack {
+            NavigationView {
+                CollectionListView()
+            }
+            .navigationViewStyle(.stack)
+
+            if showSplash {
+                SplashScreenView()
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
         }
-        .navigationViewStyle(.stack)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                withAnimation(.easeOut(duration: 0.6)) {
+                    showSplash = false
+                }
+            }
+        }
     }
 }
