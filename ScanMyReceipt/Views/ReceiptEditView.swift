@@ -11,6 +11,7 @@ struct ReceiptEditView: View {
     @State private var amountWithoutTaxText = ""
     @State private var autoCalculate = true
     @State private var enlargedImageFileName: String?
+    @State private var selectedTax: Int = 0
 
     var body: some View {
         NavigationView {
@@ -67,38 +68,20 @@ struct ReceiptEditView: View {
                             .onChange(of: totalAmountText) { _ in
                                 if let total = parseAmount(totalAmountText) {
                                     receipt.totalAmount = total
-                                    recalculateIfNeeded()
+                                    recalculateExclTax()
                                 }
                             }
                     }
 
-                    // Tax percentage — onTapGesture avoids Form gesture conflicts
+                    // Tax percentage selector (driven by separate @State to avoid struct-mutation conflicts)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Tax %")
                         HStack(spacing: 0) {
-                            ForEach([0, 9, 21], id: \.self) { pct in
-                                Text("\(pct)%")
-                                    .font(.subheadline.weight(.medium))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(
-                                        Int(receipt.taxPercentage) == pct
-                                            ? Color.accentColor
-                                            : Color(.systemGray5)
-                                    )
-                                    .foregroundColor(
-                                        Int(receipt.taxPercentage) == pct ? .white : .primary
-                                    )
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        receipt.taxPercentage = Double(pct)
-                                    }
-                            }
+                            taxButton(0)
+                            taxButton(9)
+                            taxButton(21)
                         }
                         .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .onChange(of: receipt.taxPercentage) { _ in
-                        recalculateIfNeeded()
                     }
 
                     HStack {
@@ -118,7 +101,7 @@ struct ReceiptEditView: View {
 
                     Toggle("Auto-calculate excl. tax", isOn: $autoCalculate)
                         .onChange(of: autoCalculate) { _ in
-                            recalculateIfNeeded()
+                            recalculateExclTax()
                         }
                 }
 
@@ -146,21 +129,41 @@ struct ReceiptEditView: View {
             .onAppear {
                 totalAmountText = receipt.totalAmount > 0 ? receipt.totalAmount.dutchFormatted : ""
                 amountWithoutTaxText = receipt.amountWithoutTax > 0 ? receipt.amountWithoutTax.dutchFormatted : ""
-                // Auto-calculate excl-tax when total is known but excl-tax wasn't set (e.g. OCR only found total)
+                selectedTax = Int(receipt.taxPercentage)
+                // Auto-calculate excl-tax when total is known but excl-tax wasn't set
                 if receipt.totalAmount > 0 && receipt.amountWithoutTax == 0 {
-                    recalculateIfNeeded()
+                    recalculateExclTax()
                 }
             }
         }
     }
 
+    // MARK: - Tax button
+
+    @ViewBuilder
+    private func taxButton(_ pct: Int) -> some View {
+        Text("\(pct)%")
+            .font(.subheadline.weight(.medium))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(selectedTax == pct ? Color.accentColor : Color(.systemGray5))
+            .foregroundColor(selectedTax == pct ? .white : .primary)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard selectedTax != pct else { return }
+                selectedTax = pct
+                receipt.taxPercentage = Double(pct)
+                recalculateExclTax()
+            }
+    }
+
     // MARK: - Helpers
 
-    private func recalculateIfNeeded() {
+    private func recalculateExclTax() {
         guard autoCalculate,
               let total = parseAmount(totalAmountText) else { return }
-        if receipt.taxPercentage > 0 {
-            receipt.amountWithoutTax = total / (1.0 + receipt.taxPercentage / 100.0)
+        if selectedTax > 0 {
+            receipt.amountWithoutTax = total / (1.0 + Double(selectedTax) / 100.0)
         } else {
             receipt.amountWithoutTax = total
         }
