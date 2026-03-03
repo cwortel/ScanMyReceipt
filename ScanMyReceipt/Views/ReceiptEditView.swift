@@ -64,32 +64,33 @@ struct ReceiptEditView: View {
                             }
                     }
 
-                    // Tax percentage — custom buttons for reliable tap handling
+                    // Tax percentage — onTapGesture avoids Form gesture conflicts
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Tax %")
                         HStack(spacing: 0) {
-                            ForEach([0.0, 9.0, 21.0], id: \.self) { pct in
-                                Button {
-                                    receipt.taxPercentage = pct
-                                    recalculateIfNeeded()
-                                } label: {
-                                    Text("\(Int(pct))%")
-                                        .font(.subheadline.weight(.medium))
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .background(
-                                            receipt.taxPercentage == pct
-                                                ? Color.accentColor
-                                                : Color(.systemGray5)
-                                        )
-                                        .foregroundColor(
-                                            receipt.taxPercentage == pct ? .white : .primary
-                                        )
-                                }
-                                .buttonStyle(.plain)
+                            ForEach([0, 9, 21], id: \.self) { pct in
+                                Text("\(pct)%")
+                                    .font(.subheadline.weight(.medium))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        Int(receipt.taxPercentage) == pct
+                                            ? Color.accentColor
+                                            : Color(.systemGray5)
+                                    )
+                                    .foregroundColor(
+                                        Int(receipt.taxPercentage) == pct ? .white : .primary
+                                    )
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        receipt.taxPercentage = Double(pct)
+                                    }
                             }
                         }
                         .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .onChange(of: receipt.taxPercentage) { _ in
+                        recalculateIfNeeded()
                     }
 
                     HStack {
