@@ -25,16 +25,6 @@ struct CollectionDetailView: View {
                 ZStack {
                     Color(.systemGroupedBackground)
                         .ignoresSafeArea()
-                    VStack {
-                        Spacer()
-                        Image("Logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 100)
-                            .padding(.bottom, 40)
-                            .onTapGesture { showingSplash = true }
-                    }
-
                 List {
                     ForEach(collection.receipts) { receipt in
                         ReceiptRow(receipt: receipt)
@@ -56,6 +46,14 @@ struct CollectionDetailView: View {
                     }
                 }
                 .scrollContentBackground(.hidden)
+                .overlay(alignment: .bottom) {
+                    Image("Logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 100)
+                        .padding(.bottom, 40)
+                        .onTapGesture { showingSplash = true }
+                }
                 .navigationTitle(collection.name)
                 .toolbar {
                     ToolbarItemGroup(placement: .navigationBarTrailing) {

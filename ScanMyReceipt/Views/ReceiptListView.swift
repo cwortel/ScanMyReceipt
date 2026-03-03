@@ -14,16 +14,6 @@ struct CollectionListView: View {
             // Embossed watermark behind the list
             Color(.systemGroupedBackground)
                 .ignoresSafeArea()
-            VStack {
-                Spacer()
-                Image("Logo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100)
-                    .padding(.bottom, 40)
-                    .onTapGesture { showingSplash = true }
-            }
-
             List {
                 ForEach(viewModel.collections) { collection in
                     NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
@@ -70,6 +60,14 @@ struct CollectionListView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .overlay(alignment: .bottom) {
+                Image("Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100)
+                    .padding(.bottom, 40)
+                    .onTapGesture { showingSplash = true }
+            }
         }
         .navigationTitle("Collections")
         .toolbar {
