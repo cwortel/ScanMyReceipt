@@ -9,43 +9,65 @@ struct CollectionListView: View {
     @State private var renameText = ""
 
     var body: some View {
-        List {
-            ForEach(viewModel.collections) { collection in
-                NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(collection.name)
-                            .font(.headline)
-                        HStack {
-                            Text("\(collection.receipts.count) receipt(s)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(collection.createdDate, style: .date)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .swipeActions(edge: .leading) {
-                    Button {
-                        renameText = collection.name
-                        renamingCollection = collection
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                    .tint(.blue)
-                }
+        ZStack {
+            // Embossed watermark behind the list
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
+            VStack {
+                Spacer()
+                Image("Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100)
+                    .padding(.bottom, 40)
             }
-            .onDelete(perform: viewModel.deleteCollection)
 
-            if viewModel.collections.isEmpty {
-                Text("No collections yet.\nTap + to create one.")
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
+            List {
+                ForEach(viewModel.collections) { collection in
+                    NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(collection.name)
+                                .font(.headline)
+                            HStack {
+                                Text("\(collection.receipts.count) receipt(s)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(collection.createdDate, style: .date)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .swipeActions(edge: .leading) {
+                        Button {
+                            renameText = collection.name
+                            renamingCollection = collection
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
+                        }
+                        .tint(.blue)
+                    }
+                }
+                .onDelete(perform: viewModel.deleteCollection)
+
+                if viewModel.collections.isEmpty {
+                    VStack(spacing: 16) {
+                        Text("No collections yet")
+                            .font(.title3.weight(.semibold))
+                        Text("A collection groups your receipts — for example by trip, event, or period.\n\nTap + to create a new collection.\nSelect a collection to start scanning your receipts.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 40)
+                    .padding(.top, 16)
+                    .padding(.horizontal)
+                    .listRowBackground(Color.clear)
+                }
             }
+            .scrollContentBackground(.hidden)
         }
         .navigationTitle("Collections")
         .toolbar {
