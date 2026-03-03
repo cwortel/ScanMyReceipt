@@ -44,17 +44,19 @@ struct CollectionDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.top, 40)
                     }
-                }
-                .scrollContentBackground(.hidden)
-                .safeAreaInset(edge: .bottom) {
+
+                    // Logo row at bottom
                     Image("Logo")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 100)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 20)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                         .onTapGesture { showingSplash = true }
                 }
+                .scrollContentBackground(.hidden)
                 .navigationTitle(collection.name)
                 .toolbar {
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
