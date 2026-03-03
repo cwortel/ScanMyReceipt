@@ -112,7 +112,7 @@ class TextRecognitionService {
 
     /// Shop name is typically in the first few lines of the receipt.
     private func extractShopName(from lines: [String]) -> String? {
-        for line in lines.prefix(6) {
+        for line in lines.prefix(8) {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             guard trimmed.count >= 2,
                   !looksLikeAmount(trimmed),
@@ -120,8 +120,19 @@ class TextRecognitionService {
                   !looksLikeAddress(trimmed),
                   !looksLikePhoneNumber(trimmed),
                   !looksLikeNumericCode(trimmed),
-                  !looksLikeReceiptKeyword(trimmed) else { continue }
-            return trimmed
+                  !looksLikeReceiptKeyword(trimmed),
+                  !looksLikeOrderOrTableLine(trimmed),
+                  !looksLikeTimeOnly(trimmed) else { continue }
+
+            // Strip leading digits/punctuation that OCR may prepend (e.g. "1 Cirilo" → "Cirilo")
+            let cleaned = trimmed.replacingOccurrences(
+                of: "^[\\d#*\\-\\.\\s]+",
+                with: "",
+                options: .regularExpression
+            )
+            // After stripping, must still have at least 2 meaningful characters
+            guard cleaned.count >= 2 else { continue }
+            return cleaned
         }
         return nil
     }
@@ -361,9 +372,34 @@ class TextRecognitionService {
         let keywords = [
             "vat receipt", "btw bon", "copy", "kopie",
             "kassabon", "receipt", "bon", "factuur", "invoice",
-            "welkom", "welcome"
+            "welkom", "welcome", "klant", "klantnr", "tafel",
+            "bestelling", "order", "ober", "kassa", "terminal"
         ]
         return keywords.contains(where: { lower.contains($0) })
             || lower.allSatisfy({ $0 == "*" || $0 == " " })  // decorative lines like "** COPY 1 **"
+    }
+
+    /// Lines like "Table 1", "Tafel 3", "Order 42", "#123", "Nr. 5"
+    private func looksLikeOrderOrTableLine(_ text: String) -> Bool {
+        let lower = text.lowercased().trimmingCharacters(in: .whitespaces)
+        let patterns = [
+            "^(tafel|table|order|bestelling|bon|nr\\.?|#)\\s*\\d+",  // "Tafel 1", "Order 42", "#123"
+            "^\\d{1,3}$",                                             // just a bare number like "1", "42"
+            "^\\d{1,3}\\s+\\w{1,3}$",                                // "1 st", "2 x"
+        ]
+        for pattern in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+               regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)) != nil {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Lines that are only a time, e.g. "13:45", "13:45:20"
+    private func looksLikeTimeOnly(_ text: String) -> Bool {
+        let pattern = "^\\d{1,2}[:\\.]\\d{2}([:\\.]\\d{2})?$"
+        return (try? NSRegularExpression(pattern: pattern))?
+            .firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
 }
