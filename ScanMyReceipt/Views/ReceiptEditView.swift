@@ -12,6 +12,7 @@ struct ReceiptEditView: View {
     @State private var autoCalculate = true
     @State private var enlargedImageFileName: String?
     @State private var selectedTax: Int = 0
+    @State private var isUpdating = false   // prevents onChange loops
 
     var body: some View {
         NavigationView {
@@ -66,14 +67,13 @@ struct ReceiptEditView: View {
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
                             .onChange(of: totalAmountText) { _ in
-                                if let total = parseAmount(totalAmountText) {
-                                    receipt.totalAmount = total
-                                    recalculateExclTax()
-                                }
+                                guard !isUpdating else { return }
+                                syncTotalToReceipt()
+                                recalculateExclTax()
                             }
                     }
 
-                    // Tax percentage selector (driven by separate @State to avoid struct-mutation conflicts)
+                    // Tax percentage selector
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Tax %")
                         HStack(spacing: 0) {
@@ -92,7 +92,10 @@ struct ReceiptEditView: View {
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
+                            .disabled(autoCalculate)
+                            .foregroundColor(autoCalculate ? .secondary : .primary)
                             .onChange(of: amountWithoutTaxText) { _ in
+                                guard !isUpdating, !autoCalculate else { return }
                                 if let amt = parseAmount(amountWithoutTaxText) {
                                     receipt.amountWithoutTax = amt
                                 }
@@ -100,8 +103,10 @@ struct ReceiptEditView: View {
                     }
 
                     Toggle("Auto-calculate excl. tax", isOn: $autoCalculate)
-                        .onChange(of: autoCalculate) { _ in
-                            recalculateExclTax()
+                        .onChange(of: autoCalculate) { newValue in
+                            if newValue {
+                                recalculateExclTax()
+                            }
                         }
                 }
 
@@ -110,7 +115,7 @@ struct ReceiptEditView: View {
                     HStack {
                         Text("Tax amount")
                         Spacer()
-                        Text(receipt.taxAmount.euroFormatted)
+                        Text(computedTaxAmount.euroFormatted)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -122,8 +127,14 @@ struct ReceiptEditView: View {
                     Button("Cancel", action: onCancel)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") { onSave(receipt) }
-                        .fontWeight(.semibold)
+                    Button("Save") {
+                        // Sync all @State values to receipt before saving
+                        receipt.totalAmount = parseAmount(totalAmountText) ?? receipt.totalAmount
+                        receipt.amountWithoutTax = parseAmount(amountWithoutTaxText) ?? receipt.amountWithoutTax
+                        receipt.taxPercentage = Double(selectedTax)
+                        onSave(receipt)
+                    }
+                    .fontWeight(.semibold)
                 }
             }
             .onAppear {
@@ -157,17 +168,37 @@ struct ReceiptEditView: View {
             }
     }
 
+    // MARK: - Computed tax amount (always live from current text fields)
+
+    private var computedTaxAmount: Double {
+        let total = parseAmount(totalAmountText) ?? 0
+        let excl = parseAmount(amountWithoutTaxText) ?? 0
+        return max(total - excl, 0)
+    }
+
     // MARK: - Helpers
 
-    private func recalculateExclTax() {
-        guard autoCalculate,
-              let total = parseAmount(totalAmountText) else { return }
-        if selectedTax > 0 {
-            receipt.amountWithoutTax = total / (1.0 + Double(selectedTax) / 100.0)
-        } else {
-            receipt.amountWithoutTax = total
+    private func syncTotalToReceipt() {
+        if let total = parseAmount(totalAmountText) {
+            receipt.totalAmount = total
         }
-        amountWithoutTaxText = receipt.amountWithoutTax.dutchFormatted
+    }
+
+    private func recalculateExclTax() {
+        guard autoCalculate else { return }
+        guard let total = parseAmount(totalAmountText), total > 0 else { return }
+
+        let excl: Double
+        if selectedTax > 0 {
+            excl = total / (1.0 + Double(selectedTax) / 100.0)
+        } else {
+            excl = total
+        }
+
+        receipt.amountWithoutTax = excl
+        isUpdating = true
+        amountWithoutTaxText = excl.dutchFormatted
+        isUpdating = false
     }
 
     private func parseAmount(_ text: String) -> Double? {
