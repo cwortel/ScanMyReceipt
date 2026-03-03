@@ -10,6 +10,7 @@ struct ReceiptEditView: View {
     @State private var totalAmountText = ""
     @State private var amountWithoutTaxText = ""
     @State private var autoCalculate = true
+    @State private var enlargedImageFileName: String?
 
     var body: some View {
         NavigationView {
@@ -22,6 +23,10 @@ struct ReceiptEditView: View {
                                 ForEach(receipt.imageFileNames, id: \.self) { fileName in
                                     ZStack(alignment: .topTrailing) {
                                         PreviewImageView(fileName: fileName, height: 200)
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                enlargedImageFileName = fileName
+                                            }
                                         Button {
                                             removeImage(fileName: fileName)
                                         } label: {
@@ -36,6 +41,9 @@ struct ReceiptEditView: View {
                             }
                             .padding(.vertical, 4)
                         }
+                    }
+                    .fullScreenCover(item: $enlargedImageFileName) { fileName in
+                        FullScreenImageView(fileName: fileName)
                     }
                 }
 

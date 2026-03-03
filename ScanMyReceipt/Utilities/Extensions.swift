@@ -1,5 +1,10 @@
 import Foundation
 
+// MARK: - String + Identifiable (for .fullScreenCover / .sheet item binding)
+extension String: @retroactive Identifiable {
+    public var id: String { self }
+}
+
 extension Date {
     /// Returns "YYYYMM" for the current date, used as receipt number prefix.
     var yearMonthPrefix: String {
