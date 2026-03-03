@@ -111,30 +111,71 @@ class TextRecognitionService {
     // MARK: - Extraction Helpers
 
     /// Shop name is typically in the first few lines of the receipt.
+    /// Strategy: scan top lines, skip anything that looks like a product/amount/date/code line.
+    /// A product line typically contains a price (€ or digit,digit pattern) on the same line,
+    /// or starts with a quantity like "1x", "2 x", "1 Cirilo".
     private func extractShopName(from lines: [String]) -> String? {
-        for line in lines.prefix(8) {
+        // Pass 1: look for a clean shop-name candidate in the first 10 lines
+        for line in lines.prefix(10) {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard trimmed.count >= 2,
-                  !looksLikeAmount(trimmed),
-                  !looksLikeDate(trimmed),
-                  !looksLikeAddress(trimmed),
-                  !looksLikePhoneNumber(trimmed),
-                  !looksLikeNumericCode(trimmed),
-                  !looksLikeReceiptKeyword(trimmed),
-                  !looksLikeOrderOrTableLine(trimmed),
-                  !looksLikeTimeOnly(trimmed) else { continue }
-
-            // Strip leading digits/punctuation that OCR may prepend (e.g. "1 Cirilo" → "Cirilo")
-            let cleaned = trimmed.replacingOccurrences(
-                of: "^[\\d#*\\-\\.\\s]+",
-                with: "",
-                options: .regularExpression
-            )
-            // After stripping, must still have at least 2 meaningful characters
-            guard cleaned.count >= 2 else { continue }
-            return cleaned
+            guard isValidShopNameCandidate(trimmed) else { continue }
+            return trimmed
         }
         return nil
+    }
+
+    /// Returns true if a line looks like a genuine shop/business name rather than
+    /// a product line, code, date, address, etc.
+    private func isValidShopNameCandidate(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Basic length check
+        guard trimmed.count >= 2 else { return false }
+
+        // Filter out known non-name patterns
+        guard !looksLikeAmount(trimmed),
+              !looksLikeDate(trimmed),
+              !looksLikeAddress(trimmed),
+              !looksLikePhoneNumber(trimmed),
+              !looksLikeNumericCode(trimmed),
+              !looksLikeReceiptKeyword(trimmed),
+              !looksLikeOrderOrTableLine(trimmed),
+              !looksLikeTimeOnly(trimmed),
+              !looksLikeProductLine(trimmed) else { return false }
+
+        // Line must contain at least 2 letters (not just numbers/symbols)
+        let letterCount = trimmed.filter { $0.isLetter }.count
+        guard letterCount >= 2 else { return false }
+
+        return true
+    }
+
+    /// Detects product/item lines: lines with a price embedded, or starting with a quantity.
+    /// Examples: "1 Cirilo 3,50", "2x Cappuccino", "Broodje kaas  €4,50", "1 Cirilo"
+    private func looksLikeProductLine(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        let lower = trimmed.lowercased()
+
+        // Line contains an amount (€ or bare price pattern like "3,50" or "12.34")
+        let pricePattern = "\\d+[,.]\\d{2}"
+        if let regex = try? NSRegularExpression(pattern: pricePattern),
+           regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)) != nil {
+            return true
+        }
+
+        // Starts with a quantity: "1 ", "2x ", "1x", "3 x "
+        let qtyPattern = "^\\d{1,3}\\s*[xX]?\\s+[a-zA-Z]"
+        if let regex = try? NSRegularExpression(pattern: qtyPattern),
+           regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)) != nil {
+            return true
+        }
+
+        // Contains € or EUR symbol somewhere in the middle/end
+        if lower.contains("€") || lower.contains("eur ") {
+            return true
+        }
+
+        return false
     }
 
     /// Tries several date formats common on Dutch & EU receipts.
