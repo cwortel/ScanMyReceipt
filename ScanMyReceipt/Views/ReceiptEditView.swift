@@ -44,9 +44,6 @@ struct ReceiptEditView: View {
                             .padding(.vertical, 4)
                         }
                     }
-                    .fullScreenCover(item: $enlargedImageFileName) { fileName in
-                        FullScreenImageView(fileName: fileName)
-                    }
                 }
 
                 // MARK: Details
@@ -146,6 +143,9 @@ struct ReceiptEditView: View {
                     recalculateExclTax()
                 }
             }
+        }
+        .fullScreenCover(item: $enlargedImageFileName) { fileName in
+            FullScreenImageView(fileName: fileName)
         }
     }
 
