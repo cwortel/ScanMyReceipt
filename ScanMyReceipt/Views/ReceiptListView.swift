@@ -10,10 +10,7 @@ struct CollectionListView: View {
     @State private var showingSplash = false
 
     var body: some View {
-        ZStack {
-            // Embossed watermark behind the list
-            Color(.systemGroupedBackground)
-                .ignoresSafeArea()
+        VStack(spacing: 0) {
             List {
                 ForEach(viewModel.collections) { collection in
                     NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
@@ -58,19 +55,17 @@ struct CollectionListView: View {
                     .padding(.horizontal)
                     .listRowBackground(Color.clear)
                 }
-
-                // Logo row at bottom
-                Image("Logo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .onTapGesture { showingSplash = true }
             }
-            .scrollContentBackground(.hidden)
+
+            // Static footer — always pinned at bottom
+            Image("Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 100)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color(.systemGroupedBackground))
+                .onTapGesture { showingSplash = true }
         }
         .navigationTitle("Collections")
         .toolbar {

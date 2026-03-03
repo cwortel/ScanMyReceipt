@@ -22,9 +22,7 @@ struct CollectionDetailView: View {
     var body: some View {
         Group {
             if let collection = collection {
-                ZStack {
-                    Color(.systemGroupedBackground)
-                        .ignoresSafeArea()
+                VStack(spacing: 0) {
                 List {
                     ForEach(collection.receipts) { receipt in
                         ReceiptRow(receipt: receipt)
@@ -44,19 +42,18 @@ struct CollectionDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.top, 40)
                     }
-
-                    // Logo row at bottom
-                    Image("Logo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 100)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .onTapGesture { showingSplash = true }
                 }
-                .scrollContentBackground(.hidden)
+
+                // Static footer — always pinned at bottom
+                Image("Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color(.systemGroupedBackground))
+                    .onTapGesture { showingSplash = true }
+                }
                 .navigationTitle(collection.name)
                 .toolbar {
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -140,7 +137,6 @@ struct CollectionDetailView: View {
                         }
                     }
                 }
-                } // ZStack
                 .fullScreenCover(isPresented: $showingSplash) {
                     SplashScreenView(onDismiss: {
                         showingSplash = false
