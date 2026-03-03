@@ -12,6 +12,7 @@ struct SplashScreenView: View {
     @State private var poweredByOpacity: Double = 0
     @State private var footerOpacity: Double = 0
     @State private var glowAmount: CGFloat = 0
+    @State private var titleOpacity: Double = 0
 
     var body: some View {
         ZStack {
@@ -20,6 +21,14 @@ struct SplashScreenView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
+                // App name
+                Text("SCAN MY RECEIPT")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .kerning(4)
+                    .foregroundColor(Color(red: 0.0, green: 0.35, blue: 0.0))
+                    .opacity(titleOpacity)
+                    .padding(.top, 60)
+
                 Spacer()
 
                 // "Powered by" label
@@ -53,6 +62,11 @@ struct SplashScreenView: View {
             onDismiss?()
         }
         .onAppear {
+            // Stage 0: App name fades in
+            withAnimation(.easeOut(duration: 0.6).delay(0.2)) {
+                titleOpacity = 1
+            }
+
             // Stage 1: Logo fades in and scales up with spring
             withAnimation(.easeOut(duration: 0.8)) {
                 logoOpacity = 1
