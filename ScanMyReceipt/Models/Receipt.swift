@@ -20,10 +20,6 @@ struct Receipt: Identifiable, Codable, Equatable {
     var taxAmount: Double {
         totalAmount - amountWithoutTax
     }
-
-    static func == (lhs: Receipt, rhs: Receipt) -> Bool {
-        lhs.id == rhs.id
-    }
 }
 
 // MARK: - ReceiptCollection
@@ -33,8 +29,4 @@ struct ReceiptCollection: Identifiable, Codable, Equatable {
     var name: String
     var createdDate: Date = Date()
     var receipts: [Receipt] = []
-
-    static func == (lhs: ReceiptCollection, rhs: ReceiptCollection) -> Bool {
-        lhs.id == rhs.id
-    }
 }
