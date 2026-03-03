@@ -3,6 +3,9 @@ import SwiftUI
 /// Animated splash screen shown on app launch.
 /// Auto-dismisses after ~2.5 seconds with a fade-out.
 struct SplashScreenView: View {
+    /// When provided, tapping the splash dismisses it.
+    var onDismiss: (() -> Void)? = nil
+
     @State private var logoScale: CGFloat = 0.6
     @State private var logoOpacity: Double = 0
     @State private var textOpacity: Double = 0
@@ -44,6 +47,10 @@ struct SplashScreenView: View {
                     .opacity(footerOpacity)
                     .padding(.bottom, 40)
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onDismiss?()
         }
         .onAppear {
             // Stage 1: Logo fades in and scales up with spring

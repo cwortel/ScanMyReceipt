@@ -7,6 +7,7 @@ struct CollectionListView: View {
     @State private var newCollectionName = ""
     @State private var renamingCollection: ReceiptCollection?
     @State private var renameText = ""
+    @State private var showingSplash = false
 
     var body: some View {
         ZStack {
@@ -20,6 +21,7 @@ struct CollectionListView: View {
                     .scaledToFit()
                     .frame(width: 100)
                     .padding(.bottom, 40)
+                    .onTapGesture { showingSplash = true }
             }
 
             List {
@@ -105,6 +107,11 @@ struct CollectionListView: View {
             Button("Cancel", role: .cancel) {
                 renamingCollection = nil
             }
+        }
+        .fullScreenCover(isPresented: $showingSplash) {
+            SplashScreenView(onDismiss: {
+                showingSplash = false
+            })
         }
     }
 }

@@ -13,6 +13,7 @@ struct CollectionDetailView: View {
     @State private var ocrProgress = ""
     @State private var exportFiles: [URL] = []
     @State private var editingReceipt: Receipt?
+    @State private var showingSplash = false
 
     private var collection: ReceiptCollection? {
         viewModel.collection(for: collectionID)
@@ -31,6 +32,7 @@ struct CollectionDetailView: View {
                             .scaledToFit()
                             .frame(width: 100)
                             .padding(.bottom, 40)
+                            .onTapGesture { showingSplash = true }
                     }
 
                 List {
@@ -138,6 +140,11 @@ struct CollectionDetailView: View {
                     }
                 }
                 } // ZStack
+                .fullScreenCover(isPresented: $showingSplash) {
+                    SplashScreenView(onDismiss: {
+                        showingSplash = false
+                    })
+                }
             } else {
                 Text("Collection not found")
                     .foregroundColor(.secondary)
