@@ -58,19 +58,17 @@ struct CollectionListView: View {
                     .padding(.horizontal)
                     .listRowBackground(Color.clear)
                 }
-
-                // Logo row at bottom
+            }
+            .scrollContentBackground(.hidden)
+            .safeAreaInset(edge: .bottom) {
                 Image("Logo")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 100)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 20)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
                     .onTapGesture { showingSplash = true }
             }
-            .scrollContentBackground(.hidden)
         }
         .navigationTitle("Collections")
         .toolbar {
