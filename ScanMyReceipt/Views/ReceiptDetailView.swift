@@ -34,7 +34,7 @@ struct CollectionDetailView: View {
                     }
 
                     if collection.receipts.isEmpty {
-                        Text("No receipts yet.\nTap the camera to scan one.")
+                        Text("No Receipts yet.\nTap the camera to start scanning.")
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
