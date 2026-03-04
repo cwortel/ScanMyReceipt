@@ -46,10 +46,13 @@ struct SettingsView: View {
                 } header: {
                     Text("Receipt Numbering")
                 } footer: {
-                    if settings.receiptNumberFormat == .custom {
+                    switch settings.receiptNumberFormat {
+                    case .yearMonth:
+                        Text("Prefix is auto-generated from the current year and month. Existing receipts are not affected.")
+                    case .collectionName:
+                        Text("Uses the collection name as prefix, e.g. a collection named \"Trip Paris\" produces TripParis-001, -002, etc.")
+                    case .custom:
                         Text("New receipts will be numbered as \(settings.customPrefix.isEmpty ? "MY" : settings.customPrefix)-001, -002, etc. Existing receipts are not affected.")
-                    } else {
-                        Text("Controls the prefix used for new receipt numbers. Existing receipts are not affected.")
                     }
                 }
 

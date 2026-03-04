@@ -173,7 +173,7 @@ struct CollectionDetailView: View {
             PersistenceService.shared.saveImage(image, fileName: fileName)
 
             TextRecognitionService.shared.recognizeReceipt(from: [image]) { recognizedData in
-                let number = viewModel.nextReceiptNumber()
+                let number = viewModel.nextReceiptNumber(forCollectionID: collectionID, collectionName: collection?.name)
                 var receipt = Receipt(
                     receiptNumber: number,
                     imageFileNames: [fileName]

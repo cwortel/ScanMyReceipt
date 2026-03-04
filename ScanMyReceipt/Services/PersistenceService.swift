@@ -132,19 +132,18 @@ class PersistenceService {
 
     // MARK: - Receipt Numbering
 
-    /// Generates the next receipt number using the configured format.
-    func nextReceiptNumber(existingCollections: [ReceiptCollection]) -> String {
+    /// Generates the next receipt number scoped to the given collection.
+    /// Each collection maintains its own independent sequence (001, 002, …).
+    func nextReceiptNumber(receiptsInCollection: [Receipt], collectionName: String? = nil) -> String {
         let format = AppSettings.shared.receiptNumberFormat
-        let prefix = format.prefix()
+        let prefix = format.prefix(collectionName: collectionName)
 
         var maxNumber = 0
-        for collection in existingCollections {
-            for receipt in collection.receipts {
-                if receipt.receiptNumber.hasPrefix(prefix + "-") {
-                    let suffix = receipt.receiptNumber.replacingOccurrences(of: prefix + "-", with: "")
-                    if let num = Int(suffix) {
-                        maxNumber = max(maxNumber, num)
-                    }
+        for receipt in receiptsInCollection {
+            if receipt.receiptNumber.hasPrefix(prefix + "-") {
+                let suffix = receipt.receiptNumber.replacingOccurrences(of: prefix + "-", with: "")
+                if let num = Int(suffix) {
+                    maxNumber = max(maxNumber, num)
                 }
             }
         }

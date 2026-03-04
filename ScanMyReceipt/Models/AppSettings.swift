@@ -6,8 +6,8 @@ import Foundation
 enum ReceiptNumberFormat: String, Codable, CaseIterable, Identifiable {
     /// YYYYMM-NNN  (e.g. 202603-001)
     case yearMonth = "yearMonth"
-    /// YYYYQQ-NNN  (e.g. 202601-001 for Q1)
-    case yearQuarter = "yearQuarter"
+    /// CollectionName-NNN  (e.g. TripParis-001)
+    case collectionName = "collectionName"
     /// User-defined prefix (e.g. "INV2026-001", "TRIP-001")
     case custom = "custom"
 
@@ -15,25 +15,23 @@ enum ReceiptNumberFormat: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .yearMonth:   return "Year + Month"
-        case .yearQuarter: return "Year + Quarter"
-        case .custom:      return "Custom Prefix"
+        case .yearMonth:      return "Year + Month"
+        case .collectionName: return "Collection Name"
+        case .custom:         return "Custom Prefix"
         }
     }
 
-    /// Generates the auto prefix for the current date. For `.custom`, reads from AppSettings.
-    func prefix(for date: Date = Date()) -> String {
-        let cal = Calendar.current
-        let year = cal.component(.year, from: date)
-
+    /// Generates the prefix. For `.collectionName` supply the name; for `.custom` reads AppSettings.
+    func prefix(for date: Date = Date(), collectionName: String? = nil) -> String {
         switch self {
         case .yearMonth:
+            let cal = Calendar.current
+            let year = cal.component(.year, from: date)
             let month = cal.component(.month, from: date)
             return String(format: "%04d%02d", year, month)
-        case .yearQuarter:
-            let month = cal.component(.month, from: date)
-            let quarter = (month - 1) / 3 + 1
-            return String(format: "%04d%02d", year, quarter)
+        case .collectionName:
+            let name = collectionName ?? "Collection"
+            return Self.sanitizePrefix(name)
         case .custom:
             return AppSettings.shared.customPrefix
         }
@@ -42,12 +40,19 @@ enum ReceiptNumberFormat: String, Codable, CaseIterable, Identifiable {
     /// Example string shown in settings.
     func example(customPrefix: String = "") -> String {
         switch self {
-        case .yearMonth:   return "\(prefix())-001"
-        case .yearQuarter: return "\(prefix())-001"
+        case .yearMonth:      return "\(prefix())-001"
+        case .collectionName: return "TripParis-001"
         case .custom:
             let p = customPrefix.isEmpty ? "MY" : customPrefix
             return "\(p)-001"
         }
+    }
+
+    /// Strips whitespace and special characters, keeping only alphanumerics, hyphens, underscores.
+    static func sanitizePrefix(_ name: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+        let cleaned = String(name.unicodeScalars.filter { allowed.contains($0) }.map { Character($0) })
+        return cleaned.isEmpty ? "Collection" : cleaned
     }
 }
 

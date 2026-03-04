@@ -91,7 +91,8 @@ class CollectionListViewModel: ObservableObject {
 
     // MARK: - Receipt Numbering
 
-    func nextReceiptNumber() -> String {
-        persistence.nextReceiptNumber(existingCollections: collections)
+    func nextReceiptNumber(forCollectionID collectionID: UUID, collectionName: String? = nil) -> String {
+        let receipts = collections.first(where: { $0.id == collectionID })?.receipts ?? []
+        return persistence.nextReceiptNumber(receiptsInCollection: receipts, collectionName: collectionName)
     }
 }
