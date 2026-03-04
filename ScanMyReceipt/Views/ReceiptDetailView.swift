@@ -183,6 +183,8 @@ struct CollectionDetailView: View {
                 if let total = recognizedData.totalAmount { receipt.totalAmount = total }
                 if let taxPct = recognizedData.taxPercentage {
                     receipt.taxPercentage = taxPct
+                } else {
+                    receipt.taxPercentage = AppSettings.shared.defaultTaxPercentage
                 }
                 if let exclTax = recognizedData.amountWithoutTax {
                     receipt.amountWithoutTax = exclTax

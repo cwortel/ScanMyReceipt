@@ -1,10 +1,5 @@
 import Foundation
 
-// MARK: - String + Identifiable (for .fullScreenCover / .sheet item binding)
-extension String: @retroactive Identifiable {
-    public var id: String { self }
-}
-
 extension Date {
     /// Returns "YYYYMM" for the current date, used as receipt number prefix.
     var yearMonthPrefix: String {
@@ -16,25 +11,35 @@ extension Date {
 }
 
 extension Double {
+    // MARK: - Cached Formatters (NumberFormatter is expensive to create)
+
+    private static let euroFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = "EUR"
+        f.currencySymbol = "€"
+        f.locale = Locale(identifier: "nl_NL")
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
+        return f
+    }()
+
+    private static let dutchDecimalFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.locale = Locale(identifier: "nl_NL")
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
+        f.groupingSeparator = ""
+        return f
+    }()
+
     /// Formats as "€ 1.234,56" using Dutch locale (comma decimal, dot thousands).
     var euroFormatted: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "EUR"
-        formatter.currencySymbol = "€"
-        formatter.locale = Locale(identifier: "nl_NL")
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: self)) ?? "€ 0,00"
+        Self.euroFormatter.string(from: NSNumber(value: self)) ?? "€ 0,00"
     }
 
     /// Formats as "12,34" (no currency symbol) for text field display.
     var dutchFormatted: String {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "nl_NL")
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        formatter.groupingSeparator = ""
-        return formatter.string(from: NSNumber(value: self)) ?? "0,00"
+        Self.dutchDecimalFormatter.string(from: NSNumber(value: self)) ?? "0,00"
     }
 }

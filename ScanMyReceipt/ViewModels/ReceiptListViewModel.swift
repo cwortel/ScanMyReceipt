@@ -15,6 +15,7 @@ class CollectionListViewModel: ObservableObject {
 
     func loadCollections() {
         collections = persistence.loadCollections()
+            .sorted { $0.createdDate > $1.createdDate }
     }
 
     func save() {
@@ -25,7 +26,7 @@ class CollectionListViewModel: ObservableObject {
 
     func addCollection(name: String) {
         let collection = ReceiptCollection(name: name)
-        collections.append(collection)
+        collections.insert(collection, at: 0)
         save()
     }
 

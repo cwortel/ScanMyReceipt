@@ -12,7 +12,7 @@ struct ReceiptEditView: View {
     @State private var selectedTax: Int = 0
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 // MARK: Scanned images
                 if !receipt.imageFileNames.isEmpty {
@@ -110,8 +110,13 @@ struct ReceiptEditView: View {
                 selectedTax = Int(receipt.taxPercentage)
             }
         }
-        .fullScreenCover(item: $enlargedImageFileName) { fileName in
-            FullScreenImageView(fileName: fileName)
+        .fullScreenCover(isPresented: Binding(
+            get: { enlargedImageFileName != nil },
+            set: { if !$0 { enlargedImageFileName = nil } }
+        )) {
+            if let fileName = enlargedImageFileName {
+                FullScreenImageView(fileName: fileName)
+            }
         }
     }
 

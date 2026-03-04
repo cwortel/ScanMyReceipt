@@ -23,13 +23,12 @@ class PersistenceService {
         documentsDirectory.appendingPathComponent("collections.json")
     }
 
-    var imagesDirectory: URL {
+    /// Cached images directory URL. Created once on first access.
+    lazy var imagesDirectory: URL = {
         let dir = documentsDirectory.appendingPathComponent("ReceiptImages")
-        if !fileManager.fileExists(atPath: dir.path) {
-            try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
-        }
+        try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
-    }
+    }()
 
     // MARK: - Collections
 
@@ -133,13 +132,10 @@ class PersistenceService {
 
     // MARK: - Receipt Numbering
 
-    /// Generates the next receipt number in YYYYMM-NNN format for the current month.
+    /// Generates the next receipt number using the configured format.
     func nextReceiptNumber(existingCollections: [ReceiptCollection]) -> String {
-        let calendar = Calendar.current
-        let now = Date()
-        let year = calendar.component(.year, from: now)
-        let month = calendar.component(.month, from: now)
-        let prefix = String(format: "%04d%02d", year, month)
+        let format = AppSettings.shared.receiptNumberFormat
+        let prefix = format.prefix()
 
         var maxNumber = 0
         for collection in existingCollections {

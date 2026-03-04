@@ -5,10 +5,9 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            NavigationView {
+            NavigationStack {
                 CollectionListView()
             }
-            .navigationViewStyle(.stack)
 
             if showSplash {
                 SplashScreenView()

@@ -1,4 +1,6 @@
 // ViewModels/ScannerViewModel.swift
-// Scanner logic is handled by CollectionListViewModel + DocumentCameraView.
-// This file is kept for project structure compatibility.
+//
+// Intentionally empty — scanner logic lives in CollectionListViewModel
+// and DocumentCameraView. Kept only for Xcode project-file compatibility.
+
 import Foundation

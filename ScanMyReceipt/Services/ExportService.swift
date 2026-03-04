@@ -89,10 +89,9 @@ class ExportService {
         df.dateFormat = "yyyy-MM-dd"
 
         for r in collection.receipts {
-            let shop = r.shopName.contains(",") ? "\"\(r.shopName)\"" : r.shopName
             csv += [
-                r.receiptNumber,
-                shop,
+                csvEscape(r.receiptNumber),
+                csvEscape(r.shopName),
                 df.string(from: r.purchaseDate),
                 String(format: "%.2f", r.totalAmount),
                 String(format: "%.2f", r.amountWithoutTax),
@@ -193,6 +192,14 @@ class ExportService {
 
     private func fmt(_ value: Double) -> String {
         String(format: "%.2f", value)
+    }
+
+    /// RFC 4180–compliant CSV field escaping.
+    private func csvEscape(_ field: String) -> String {
+        if field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r") {
+            return "\"" + field.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        }
+        return field
     }
 
     private func sanitize(_ name: String) -> String {

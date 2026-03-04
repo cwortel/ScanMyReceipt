@@ -58,9 +58,7 @@ struct PreviewImageView: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
-                    .if(height != nil) { view in
-                        view.frame(height: height!)
-                    }
+                    .frame(height: height)
                     .cornerRadius(8)
             } else {
                 ProgressView()
@@ -180,15 +178,4 @@ struct FullScreenImageView: View {
     }
 }
 
-// MARK: - Conditional modifier helper
 
-private extension View {
-    @ViewBuilder
-    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
-    }
-}
