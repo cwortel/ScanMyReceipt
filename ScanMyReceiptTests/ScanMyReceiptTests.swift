@@ -59,9 +59,9 @@ final class ScanMyReceiptTests: XCTestCase {
         }
     }
 
-    // MARK: - UBL Export
+    // MARK: - UBL / Factur-X Export
 
-    func testUBLGeneration() {
+    func testUBLXMLContent() {
         var receipt = Receipt()
         receipt.receiptNumber = "202603-001"
         receipt.shopName = "Jumbo"
@@ -69,16 +69,11 @@ final class ScanMyReceiptTests: XCTestCase {
         receipt.amountWithoutTax = 20.00
         receipt.taxPercentage = 21.0
 
-        let collection = ReceiptCollection(name: "TestUBL", receipts: [receipt])
-        let urls = ExportService.shared.generateUBLFiles(for: collection)
-        XCTAssertEqual(urls.count, 1)
-
-        if let url = urls.first, let xml = try? String(contentsOf: url, encoding: .utf8) {
-            XCTAssertTrue(xml.contains("<cbc:ID>202603-001</cbc:ID>"))
-            XCTAssertTrue(xml.contains("<cbc:Name>Jumbo</cbc:Name>"))
-            XCTAssertTrue(xml.contains("PayableAmount"))
-            XCTAssertTrue(xml.contains("24.20"))
-        }
+        let xml = ExportService.shared.ublXMLString(for: receipt)
+        XCTAssertTrue(xml.contains("<cbc:ID>202603-001</cbc:ID>"))
+        XCTAssertTrue(xml.contains("<cbc:Name>Jumbo</cbc:Name>"))
+        XCTAssertTrue(xml.contains("PayableAmount"))
+        XCTAssertTrue(xml.contains("24.20"))
     }
 
     // MARK: - Collection ViewModel

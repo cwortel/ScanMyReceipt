@@ -108,7 +108,7 @@ struct CollectionDetailView: View {
                 .confirmationDialog("Export Collection", isPresented: $showingExportOptions) {
                     Button("PDF (Receipt Images)") { exportPDF(collection) }
                     Button("CSV (Spreadsheet)") { exportCSV(collection) }
-                    Button("UBL (Bookkeeping)") { exportUBL(collection) }
+                    Button("PDF + UBL (Factur-X)") { exportFacturX(collection) }
                     Button("All Formats") { exportAll(collection) }
                     Button("Cancel", role: .cancel) {}
                 }
@@ -218,8 +218,8 @@ struct CollectionDetailView: View {
         showShareSheetIfNeeded()
     }
 
-    private func exportUBL(_ c: ReceiptCollection) {
-        exportFiles = ExportService.shared.generateUBLFiles(for: c)
+    private func exportFacturX(_ c: ReceiptCollection) {
+        exportFiles = ExportService.shared.generateFacturXFiles(for: c)
         showShareSheetIfNeeded()
     }
 
@@ -227,7 +227,7 @@ struct CollectionDetailView: View {
         exportFiles = []
         if let url = ExportService.shared.generatePDF(for: c) { exportFiles.append(url) }
         if let url = ExportService.shared.generateCSV(for: c) { exportFiles.append(url) }
-        exportFiles.append(contentsOf: ExportService.shared.generateUBLFiles(for: c))
+        exportFiles.append(contentsOf: ExportService.shared.generateFacturXFiles(for: c))
         showShareSheetIfNeeded()
     }
 
