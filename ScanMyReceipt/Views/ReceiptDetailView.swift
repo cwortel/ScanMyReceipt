@@ -10,6 +10,7 @@ struct CollectionDetailView: View {
     @State private var showingExportOptions = false
     @State private var shareItems: ShareableItems?
     @State private var isProcessingOCR = false
+    @State private var isExporting = false
     @State private var ocrProgress = ""
     @State private var editingReceipt: Receipt?
     @State private var showingSplash = false
@@ -121,9 +122,9 @@ struct CollectionDetailView: View {
                 .sheet(item: $shareItems) { items in
                     ShareSheet(activityItems: items.urls)
                 }
-                // OCR processing overlay
+                // Processing overlay (OCR or export)
                 .overlay {
-                    if isProcessingOCR {
+                    if isProcessingOCR || isExporting {
                         ZStack {
                             Color.black.opacity(0.3)
                                 .ignoresSafeArea()
@@ -131,7 +132,7 @@ struct CollectionDetailView: View {
                                 ProgressView()
                                     .scaleEffect(1.5)
                                     .tint(.primary)
-                                Text(ocrProgress)
+                                Text(isExporting ? "Preparing export\u{2026}" : ocrProgress)
                                     .font(.headline)
                             }
                             .padding(24)
@@ -217,45 +218,53 @@ struct CollectionDetailView: View {
     // MARK: - Export helpers
 
     private func exportPDF(_ c: ReceiptCollection) {
+        isExporting = true
         DispatchQueue.global(qos: .userInitiated).async {
             let urls: [URL] = {
                 if let url = ExportService.shared.generatePDF(for: c) { return [url] }
                 return []
             }()
             DispatchQueue.main.async {
+                isExporting = false
                 presentShareSheet(urls)
             }
         }
     }
 
     private func exportCSV(_ c: ReceiptCollection) {
+        isExporting = true
         DispatchQueue.global(qos: .userInitiated).async {
             let urls: [URL] = {
                 if let url = ExportService.shared.generateCSV(for: c) { return [url] }
                 return []
             }()
             DispatchQueue.main.async {
+                isExporting = false
                 presentShareSheet(urls)
             }
         }
     }
 
     private func exportUBL(_ c: ReceiptCollection) {
+        isExporting = true
         DispatchQueue.global(qos: .userInitiated).async {
             let urls = ExportService.shared.generateUBLFiles(for: c)
             DispatchQueue.main.async {
+                isExporting = false
                 presentShareSheet(urls)
             }
         }
     }
 
     private func exportAll(_ c: ReceiptCollection) {
+        isExporting = true
         DispatchQueue.global(qos: .userInitiated).async {
             var urls: [URL] = []
             if let url = ExportService.shared.generatePDF(for: c) { urls.append(url) }
             if let url = ExportService.shared.generateCSV(for: c) { urls.append(url) }
             urls.append(contentsOf: ExportService.shared.generateUBLFiles(for: c))
             DispatchQueue.main.async {
+                isExporting = false
                 presentShareSheet(urls)
             }
         }
