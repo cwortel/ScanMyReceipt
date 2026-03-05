@@ -101,6 +101,58 @@ class TextRecognitionService {
 
     // MARK: - Public API
 
+    /// Detects the document rectangle in an image and returns a
+    /// perspective-corrected crop. Falls back to the original image
+    /// if no document is found.
+    func cropDocument(from image: UIImage) async -> UIImage {
+        guard let cgImage = image.cgImage else { return image }
+
+        return await withCheckedContinuation { continuation in
+            let request = VNDetectDocumentSegmentationRequest { request, error in
+                guard let result = (request.results as? [VNRectangleObservation])?.first else {
+                    continuation.resume(returning: image)
+                    return
+                }
+                let cropped = Self.perspectiveCorrected(cgImage: cgImage, observation: result)
+                continuation.resume(returning: cropped ?? image)
+            }
+
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try handler.perform([request])
+                } catch {
+                    print("Document detection failed: \(error)")
+                    continuation.resume(returning: image)
+                }
+            }
+        }
+    }
+
+    /// Applies a perspective correction using CIFilter to straighten
+    /// and crop the detected rectangle from the source image.
+    private static func perspectiveCorrected(cgImage: CGImage, observation: VNRectangleObservation) -> UIImage? {
+        let ciImage = CIImage(cgImage: cgImage)
+        let size = ciImage.extent.size
+
+        // Vision coordinates are normalised (0…1, origin bottom-left)
+        func point(_ p: CGPoint) -> CIVector {
+            CIVector(x: p.x * size.width, y: p.y * size.height)
+        }
+
+        guard let filter = CIFilter(name: "CIPerspectiveCorrection") else { return nil }
+        filter.setValue(ciImage, forKey: kCIInputImageKey)
+        filter.setValue(point(observation.topLeft), forKey: "inputTopLeft")
+        filter.setValue(point(observation.topRight), forKey: "inputTopRight")
+        filter.setValue(point(observation.bottomLeft), forKey: "inputBottomLeft")
+        filter.setValue(point(observation.bottomRight), forKey: "inputBottomRight")
+
+        guard let output = filter.outputImage else { return nil }
+        let context = CIContext()
+        guard let result = context.createCGImage(output, from: output.extent) else { return nil }
+        return UIImage(cgImage: result)
+    }
+
     /// Runs OCR on all images, combines text, and parses receipt fields.
     func recognizeReceipt(from images: [UIImage], completion: @escaping (RecognizedReceiptData) -> Void) {
         let group = DispatchGroup()
