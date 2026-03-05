@@ -62,20 +62,29 @@ class TextRecognitionService {
     }()
 
     // Tax percentage detection
+    // Separator [:\s\-]* allows colon, whitespace and hyphen between keyword
+    // and number so "BTW: 21%", "BTW-21" etc. are all recognised.
+    // Negative lookahead (?![,.]\d*[1-9]) prevents matching tax *amounts*
+    // like "BTW 9,45" (€9.45) as a 9% rate.
     private static let taxPatterns: [(regex: NSRegularExpression, pct: Double)] = [
-        (try! NSRegularExpression(pattern: "btw\\s*(?:hoog)?\\s*21"), 21.0),
-        (try! NSRegularExpression(pattern: "21[,.]?\\d*\\s*%\\s*btw"), 21.0),
-        (try! NSRegularExpression(pattern: "btw\\s*21[,.]?\\d*\\s*%"), 21.0),
-        (try! NSRegularExpression(pattern: "btw\\s*(?:laag)?\\s*9"), 9.0),
-        (try! NSRegularExpression(pattern: "9[,.]00\\s*%"), 9.0),
-        (try! NSRegularExpression(pattern: "9\\s*%\\s*btw"), 9.0),
-        (try! NSRegularExpression(pattern: "btw\\s*9[,.]?\\d*\\s*%"), 9.0),
-        (try! NSRegularExpression(pattern: "btw\\s*0"), 0.0),
-        (try! NSRegularExpression(pattern: "0[,.]?\\d*\\s*%\\s*btw"), 0.0),
-        (try! NSRegularExpression(pattern: "vat\\s*21"), 21.0),
-        (try! NSRegularExpression(pattern: "21[,.]?\\d*\\s*%\\s*vat"), 21.0),
-        (try! NSRegularExpression(pattern: "vat\\s*9"), 9.0),
-        (try! NSRegularExpression(pattern: "9[,.]?\\d*\\s*%\\s*vat"), 9.0),
+        // 21 % – explicit percentage sign (unambiguous)
+        (try! NSRegularExpression(pattern: "21[,.]?0*\\s*%\\s*btw"), 21.0),
+        (try! NSRegularExpression(pattern: "btw[:\\s\\-]*21[,.]?0*\\s*%"), 21.0),
+        // 21 % – keyword adjacent (btw hoog 21, btw 21)
+        (try! NSRegularExpression(pattern: "btw[:\\s\\-]*(?:hoog)?[:\\s\\-]*21(?![,.]\\d*[1-9])"), 21.0),
+        // 9 % – explicit percentage sign
+        (try! NSRegularExpression(pattern: "9[,.]?0*\\s*%\\s*btw"), 9.0),
+        (try! NSRegularExpression(pattern: "btw[:\\s\\-]*9[,.]?0*\\s*%"), 9.0),
+        // 9 % – keyword adjacent, avoiding amounts (9,45 ≠ 9 %)
+        (try! NSRegularExpression(pattern: "btw[:\\s\\-]*(?:laag)?[:\\s\\-]*9(?![,.]\\d*[1-9])"), 9.0),
+        // 0 % – keyword adjacent, avoiding amounts (0,83 ≠ 0 %)
+        (try! NSRegularExpression(pattern: "btw[:\\s\\-]*0(?![,.]\\d*[1-9])"), 0.0),
+        (try! NSRegularExpression(pattern: "0[,.]?0*\\s*%\\s*btw"), 0.0),
+        // VAT patterns (English)
+        (try! NSRegularExpression(pattern: "21[,.]?0*\\s*%\\s*vat"), 21.0),
+        (try! NSRegularExpression(pattern: "vat[:\\s\\-]*21(?![,.]\\d*[1-9])"), 21.0),
+        (try! NSRegularExpression(pattern: "9[,.]?0*\\s*%\\s*vat"), 9.0),
+        (try! NSRegularExpression(pattern: "vat[:\\s\\-]*9(?![,.]\\d*[1-9])"), 9.0),
     ]
 
     // Amount extraction
@@ -166,6 +175,14 @@ class TextRecognitionService {
         data.purchaseDate = extractDate(from: text)
         data.totalAmount = extractTotalAmount(from: lines)
         data.taxPercentage = extractTaxPercentage(from: text)
+
+        #if DEBUG
+        // Log OCR results for tax debugging
+        let taxLines = text.lowercased().components(separatedBy: "\n")
+            .filter { $0.contains("btw") || $0.contains("b.t.w") || $0.contains("vat") || $0.contains("tarief") }
+        print("[OCR] Tax lines: \(taxLines)")
+        print("[OCR] Detected tax: \(data.taxPercentage.map { "\($0)%" } ?? "nil")")
+        #endif
 
         // Derive excl-tax amount if we have total and tax %
         if let total = data.totalAmount, let taxPct = data.taxPercentage {
@@ -302,36 +319,92 @@ class TextRecognitionService {
     }
 
     /// Detects BTW / VAT percentage from the recognized text.
+    ///
+    /// Handles both single-line ("BTW 21%") and multi-line layouts where
+    /// the keyword and the number appear on adjacent lines:
+    /// ```
+    /// BTW%
+    /// 21
+    /// ```
     private func extractTaxPercentage(from text: String) -> Double? {
         let lower = text.lowercased()
-        let range = NSRange(lower.startIndex..., in: lower)
+
+        // Normalize common B.T.W. variants so the patterns can match plain "btw"
+        let normalized = lower
+            .replacingOccurrences(of: "b.t.w.", with: "btw")
+            .replacingOccurrences(of: "b.t.w", with: "btw")
+
+        // Collapse newlines into spaces so patterns match across line breaks.
+        // This handles receipts where "BTW%" and "21" are on separate lines.
+        let singleLine = normalized
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+        let range = NSRange(singleLine.startIndex..., in: singleLine)
 
         // Explicit keyword + percentage combos
         for (regex, pct) in Self.taxPatterns {
-            if regex.firstMatch(in: lower, range: range) != nil {
+            if regex.firstMatch(in: singleLine, range: range) != nil {
                 return pct
             }
         }
 
         // Generic: look for percentage near BTW/VAT keywords.
-        if lower.contains("btw") || lower.contains("vat") {
-            if let match = Self.genericPctRegex.firstMatch(in: lower, range: range),
-               let pctRange = Range(match.range(at: 1), in: lower) {
-                if let pct = Double(String(lower[pctRange])), [0, 9, 21].contains(Int(pct)) {
-                    return pct
+        // Checks ALL percentage occurrences (not just the first) to avoid
+        // skipping a valid rate when a non-rate percentage appears earlier.
+        if singleLine.contains("btw") || singleLine.contains("vat") {
+            let matches = Self.genericPctRegex.matches(in: singleLine, range: range)
+            for match in matches {
+                if let pctRange = Range(match.range(at: 1), in: singleLine) {
+                    if let pct = Double(String(singleLine[pctRange])), [0, 9, 21].contains(Int(pct)) {
+                        return pct
+                    }
                 }
             }
         }
 
         // Also look for "tarief" (Dutch for rate/tariff) lines
-        if let match = Self.tariefRegex.firstMatch(in: lower, range: range),
-           let pctRange = Range(match.range(at: 1), in: lower) {
-            if let pct = Double(String(lower[pctRange])), [0, 9, 21].contains(Int(pct)) {
+        if let match = Self.tariefRegex.firstMatch(in: singleLine, range: range),
+           let pctRange = Range(match.range(at: 1), in: singleLine) {
+            if let pct = Double(String(singleLine[pctRange])), [0, 9, 21].contains(Int(pct)) {
                 return pct
             }
         }
 
+        // Multi-line fallback: check if any line adjacent to a BTW/VAT line
+        // contains just a tax rate number (0, 9, or 21).
+        let lines = normalized.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        for (i, line) in lines.enumerated() {
+            let isTaxKeyword = line.contains("btw") || line.contains("vat")
+            guard isTaxKeyword else { continue }
+            // Check the next line for a standalone rate
+            if i + 1 < lines.count {
+                let next = lines[i + 1].trimmingCharacters(in: .whitespaces)
+                if let pct = Self.standaloneRate(next) { return pct }
+            }
+            // Check the previous line too (rate might precede the keyword)
+            if i - 1 >= 0 {
+                let prev = lines[i - 1].trimmingCharacters(in: .whitespaces)
+                if let pct = Self.standaloneRate(prev) { return pct }
+            }
+        }
+
         return nil
+    }
+
+    /// Returns a valid Dutch tax rate if the string is just a number like
+    /// "21", "9", "0", "21%", "9,00%", etc. — and nothing else.
+    private static let standaloneRateRegex = try! NSRegularExpression(
+        pattern: "^(0|9|21)[,.]?0*\\s*%?$"
+    )
+
+    private static func standaloneRate(_ text: String) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        let range = NSRange(trimmed.startIndex..., in: trimmed)
+        guard let match = standaloneRateRegex.firstMatch(in: trimmed, range: range),
+              let numRange = Range(match.range(at: 1), in: trimmed),
+              let pct = Double(String(trimmed[numRange])) else { return nil }
+        return pct
     }
 
     // MARK: - Amount Parsing

@@ -100,4 +100,74 @@ final class ScanMyReceiptTests: XCTestCase {
         }
         XCTAssertEqual(vm.collections.count, initial)
     }
+
+    // MARK: - Tax Percentage Detection
+
+    private func detectTax(_ text: String) -> Double? {
+        TextRecognitionService.shared.parseReceiptData(from: text).taxPercentage
+    }
+
+    func testTaxDetection_btw21Percent() {
+        XCTAssertEqual(detectTax("BTW 21%"), 21.0)
+        XCTAssertEqual(detectTax("btw 21,00%"), 21.0)
+        XCTAssertEqual(detectTax("21% BTW"), 21.0)
+        XCTAssertEqual(detectTax("BTW hoog 21%"), 21.0)
+    }
+
+    func testTaxDetection_btw9Percent() {
+        XCTAssertEqual(detectTax("BTW 9%"), 9.0)
+        XCTAssertEqual(detectTax("9% BTW"), 9.0)
+        XCTAssertEqual(detectTax("BTW laag 9%"), 9.0)
+        XCTAssertEqual(detectTax("BTW 9,00%"), 9.0)
+    }
+
+    func testTaxDetection_btw0Percent() {
+        XCTAssertEqual(detectTax("BTW 0%"), 0.0)
+        XCTAssertEqual(detectTax("0% BTW"), 0.0)
+    }
+
+    func testTaxDetection_colonSeparator() {
+        // Colons between keyword and number should be handled
+        XCTAssertEqual(detectTax("BTW: 21%"), 21.0)
+        XCTAssertEqual(detectTax("BTW: 9%"), 9.0)
+        XCTAssertEqual(detectTax("BTW:21"), 21.0)
+    }
+
+    func testTaxDetection_hyphenSeparator() {
+        XCTAssertEqual(detectTax("BTW-21"), 21.0)
+        XCTAssertEqual(detectTax("BTW-9"), 9.0)
+    }
+
+    func testTaxDetection_btwDotted() {
+        // B.T.W. format
+        XCTAssertEqual(detectTax("B.T.W. 21%"), 21.0)
+        XCTAssertEqual(detectTax("B.T.W. 9%"), 9.0)
+    }
+
+    func testTaxDetection_amountNotRate() {
+        // "BTW 9,45" is a tax AMOUNT, not a 9% rate — should return nil
+        XCTAssertNil(detectTax("BTW 9,45"))
+        // "BTW 0,83" is a tax amount of €0.83, not 0%
+        XCTAssertNil(detectTax("BTW 0,83"))
+    }
+
+    func testTaxDetection_genericFallback() {
+        // Generic: text contains "btw" + a valid percentage somewhere
+        XCTAssertEqual(detectTax("totaal incl. 21% btw"), 21.0)
+        XCTAssertEqual(detectTax("inclusief btw\ntarief 9,00%"), 9.0)
+    }
+
+    func testTaxDetection_noMatch() {
+        XCTAssertNil(detectTax("Total: 12,50"))
+        XCTAssertNil(detectTax("Thank you for shopping"))
+    }
+
+    func testTaxDetection_multiLine() {
+        // Number on the line below the keyword
+        XCTAssertEqual(detectTax("BTW%\n21"), 21.0)
+        XCTAssertEqual(detectTax("BTW%\n9"), 9.0)
+        XCTAssertEqual(detectTax("BTW\n21%"), 21.0)
+        // Number on the line above the keyword
+        XCTAssertEqual(detectTax("9%\nBTW"), 9.0)
+    }
 }

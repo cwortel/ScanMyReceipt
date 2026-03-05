@@ -7,9 +7,20 @@ struct ReceiptEditView: View {
     var onSave: (Receipt) -> Void
     var onCancel: () -> Void
 
-    @State private var totalAmountText = ""
+    @State private var totalAmountText: String
     @State private var enlargedImageFileName: String?
-    @State private var selectedTax: Int = 0
+    @State private var selectedTax: Int
+
+    // Initialise @State from the receipt directly instead of relying on
+    // .onAppear, which can fire too late or be skipped in SwiftUI sheets.
+    init(receipt: Receipt, isNew: Bool, onSave: @escaping (Receipt) -> Void, onCancel: @escaping () -> Void) {
+        _receipt = State(initialValue: receipt)
+        _totalAmountText = State(initialValue: receipt.totalAmount > 0 ? receipt.totalAmount.dutchFormatted : "")
+        _selectedTax = State(initialValue: Int(receipt.taxPercentage))
+        self.isNew = isNew
+        self.onSave = onSave
+        self.onCancel = onCancel
+    }
 
     var body: some View {
         NavigationStack {
@@ -106,8 +117,14 @@ struct ReceiptEditView: View {
                 }
             }
             .onAppear {
-                totalAmountText = receipt.totalAmount > 0 ? receipt.totalAmount.dutchFormatted : ""
-                selectedTax = Int(receipt.taxPercentage)
+                // @State is initialised in init; onAppear kept only as
+                // a safety net in case SwiftUI reuses the view identity.
+                if selectedTax == 0 && receipt.taxPercentage > 0 {
+                    selectedTax = Int(receipt.taxPercentage)
+                }
+                if totalAmountText.isEmpty && receipt.totalAmount > 0 {
+                    totalAmountText = receipt.totalAmount.dutchFormatted
+                }
             }
         }
         .fullScreenCover(isPresented: Binding(
