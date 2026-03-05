@@ -8,10 +8,9 @@ struct CollectionDetailView: View {
 
     @State private var showingScanner = false
     @State private var showingExportOptions = false
-    @State private var showingShareSheet = false
+    @State private var shareItems: ShareableItems?
     @State private var isProcessingOCR = false
     @State private var ocrProgress = ""
-    @State private var exportFiles: [URL] = []
     @State private var editingReceipt: Receipt?
     @State private var showingSplash = false
     @State private var showingCollectionSettings = false
@@ -116,9 +115,11 @@ struct CollectionDetailView: View {
                     Button("All Formats") { exportAll(collection) }
                     Button("Cancel", role: .cancel) {}
                 }
-                // Share sheet
-                .sheet(isPresented: $showingShareSheet) {
-                    ShareSheet(activityItems: exportFiles)
+                // Share sheet — uses .sheet(item:) so the URLs are
+                // delivered through the binding, avoiding a blank sheet
+                // on first presentation.
+                .sheet(item: $shareItems) { items in
+                    ShareSheet(activityItems: items.urls)
                 }
                 // OCR processing overlay
                 .overlay {
@@ -216,60 +217,53 @@ struct CollectionDetailView: View {
     // MARK: - Export helpers
 
     private func exportPDF(_ c: ReceiptCollection) {
-        exportFiles = []
         DispatchQueue.global(qos: .userInitiated).async {
             let urls: [URL] = {
                 if let url = ExportService.shared.generatePDF(for: c) { return [url] }
                 return []
             }()
             DispatchQueue.main.async {
-                exportFiles = urls
-                showShareSheetIfNeeded()
+                presentShareSheet(urls)
             }
         }
     }
 
     private func exportCSV(_ c: ReceiptCollection) {
-        exportFiles = []
         DispatchQueue.global(qos: .userInitiated).async {
             let urls: [URL] = {
                 if let url = ExportService.shared.generateCSV(for: c) { return [url] }
                 return []
             }()
             DispatchQueue.main.async {
-                exportFiles = urls
-                showShareSheetIfNeeded()
+                presentShareSheet(urls)
             }
         }
     }
 
     private func exportFacturX(_ c: ReceiptCollection) {
-        exportFiles = []
         DispatchQueue.global(qos: .userInitiated).async {
             let urls = ExportService.shared.generateFacturXFiles(for: c)
             DispatchQueue.main.async {
-                exportFiles = urls
-                showShareSheetIfNeeded()
+                presentShareSheet(urls)
             }
         }
     }
 
     private func exportAll(_ c: ReceiptCollection) {
-        exportFiles = []
         DispatchQueue.global(qos: .userInitiated).async {
             var urls: [URL] = []
             if let url = ExportService.shared.generatePDF(for: c) { urls.append(url) }
             if let url = ExportService.shared.generateCSV(for: c) { urls.append(url) }
             urls.append(contentsOf: ExportService.shared.generateFacturXFiles(for: c))
             DispatchQueue.main.async {
-                exportFiles = urls
-                showShareSheetIfNeeded()
+                presentShareSheet(urls)
             }
         }
     }
 
-    private func showShareSheetIfNeeded() {
-        if !exportFiles.isEmpty { showingShareSheet = true }
+    private func presentShareSheet(_ urls: [URL]) {
+        guard !urls.isEmpty else { return }
+        shareItems = ShareableItems(urls: urls)
     }
 }
 
