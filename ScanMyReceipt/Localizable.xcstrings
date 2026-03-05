@@ -1,5 +1,162 @@
 {
   "sourceLanguage" : "en",
-  "strings" : {},
+  "strings" : {
+    "%lld receipt(s)" : {
+
+    },
+    "%lld%%" : {
+
+    },
+    "© 2026 Cirilo Wortel. All rights reserved." : {
+
+    },
+    "€" : {
+
+    },
+    "0,00" : {
+
+    },
+    "A collection groups your receipts — for example by trip, event, or period.\n\nTap + to create a new collection.\nSelect a collection to start scanning your receipts." : {
+
+    },
+    "All Formats" : {
+
+    },
+    "Amount (excl. tax)" : {
+
+    },
+    "Amounts" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Collection name" : {
+
+    },
+    "Collection not found" : {
+
+    },
+    "Collection Settings" : {
+
+    },
+    "Collections" : {
+
+    },
+    "Create" : {
+
+    },
+    "CSV (Spreadsheet)" : {
+
+    },
+    "Date" : {
+
+    },
+    "Default Tax Percentage" : {
+
+    },
+    "Done" : {
+
+    },
+    "e.g. %@" : {
+
+    },
+    "e.g. INV2026" : {
+
+    },
+    "Edit Receipt" : {
+
+    },
+    "Export Collection" : {
+
+    },
+    "New Collection" : {
+
+    },
+    "New Receipt" : {
+
+    },
+    "No collections yet" : {
+
+    },
+    "No Receipts yet.\nTap the camera to start scanning." : {
+
+    },
+    "PDF (Receipt Images)" : {
+
+    },
+    "Powered by" : {
+
+    },
+    "Pre-selected tax rate for newly scanned receipts. OCR may override this if it detects a tax rate on the receipt." : {
+
+    },
+    "Prefix" : {
+
+    },
+    "Prefix is auto-generated from the current year and month." : {
+
+    },
+    "Previously exported files will not be updated." : {
+
+    },
+    "Reassigns sequential numbers (001, 002, …) to all receipts in their current order." : {
+
+    },
+    "Receipt Details" : {
+
+    },
+    "Receipt Numbering" : {
+
+    },
+    "Receipts will be numbered as %@-001, -002, etc." : {
+
+    },
+    "Rename" : {
+
+    },
+    "Rename Collection" : {
+
+    },
+    "Renumber %lld receipt(s)" : {
+
+    },
+    "Renumber All Receipts" : {
+
+    },
+    "Renumber Receipts" : {
+
+    },
+    "Save" : {
+
+    },
+    "SCAN MY RECEIPT" : {
+
+    },
+    "Scanned Images" : {
+
+    },
+    "Tax %" : {
+
+    },
+    "Tax amount" : {
+
+    },
+    "This will reassign all receipt numbers using **%@** sequentially. This cannot be undone." : {
+
+    },
+    "Total (incl. tax)" : {
+
+    },
+    "UBL + PDF (E-Invoice)" : {
+
+    },
+    "Uses the collection name as prefix, e.g. \"%@-001\"." : {
+
+    },
+    "version %@" : {
+
+    }
+  },
   "version" : "1.0"
 }
