@@ -186,18 +186,23 @@ struct CollectionDetailView: View {
 
     // MARK: - Photo Library Import
 
-    /// Loads UIImages from PhotosPicker selections and feeds them into
-    /// the same OCR pipeline used for scanned receipts.
+    /// Loads UIImages from PhotosPicker selections, crops them to the
+    /// detected document rectangle, then feeds them into the same OCR
+    /// pipeline used for scanned receipts.
     private func loadAndProcessPhotos(_ items: [PhotosPickerItem]) {
         isProcessingOCR = true
         ocrProgress = "Loading photos\u{2026}"
 
         Task {
             var images: [UIImage] = []
-            for item in items {
+            for (i, item) in items.enumerated() {
+                await MainActor.run {
+                    ocrProgress = "Cropping photo \(i + 1) of \(items.count)\u{2026}"
+                }
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
-                    images.append(image)
+                    let cropped = await TextRecognitionService.shared.cropDocument(from: image)
+                    images.append(cropped)
                 }
             }
             await MainActor.run {
