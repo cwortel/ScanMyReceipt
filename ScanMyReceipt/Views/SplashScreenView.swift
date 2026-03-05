@@ -29,6 +29,13 @@ struct SplashScreenView: View {
                     .opacity(titleOpacity)
                     .padding(.top, 60)
 
+                // Version
+                Text("version \(Bundle.main.versionString)")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .opacity(titleOpacity)
+                    .padding(.top, 4)
+
                 Spacer()
 
                 // "Powered by" label

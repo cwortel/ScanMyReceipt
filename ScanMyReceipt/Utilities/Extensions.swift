@@ -1,5 +1,14 @@
 import Foundation
 
+extension Bundle {
+    /// "1.0.42" — short version + build number.
+    var versionString: String {
+        let version = infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = infoDictionary?["CFBundleVersion"] as? String ?? "0"
+        return "\(version).\(build)"
+    }
+}
+
 extension Date {
     /// Returns "YYYYMM" for the current date, used as receipt number prefix.
     var yearMonthPrefix: String {

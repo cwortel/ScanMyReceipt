@@ -22,18 +22,23 @@ final class ScanMyReceiptTests: XCTestCase {
 
     func testNextReceiptNumberEmpty() {
         let service = PersistenceService.shared
-        let number = service.nextReceiptNumber(receiptsInCollection: [], collectionName: "Test")
-        let prefix = AppSettings.shared.receiptNumberFormat.prefix(collectionName: "Test")
+        let collection = ReceiptCollection(name: "Test", receipts: [])
+        let number = service.nextReceiptNumber(for: collection)
+        let prefix = collection.numberFormat.prefix(collectionName: "Test", customPrefix: collection.customPrefix)
         XCTAssertEqual(number, "\(prefix)-001")
     }
 
     func testNextReceiptNumberIncrement() {
-        let prefix = AppSettings.shared.receiptNumberFormat.prefix(collectionName: "Test")
-        let receipts = [
-            Receipt(receiptNumber: "\(prefix)-001"),
-            Receipt(receiptNumber: "\(prefix)-003")
-        ]
-        let number = PersistenceService.shared.nextReceiptNumber(receiptsInCollection: receipts, collectionName: "Test")
+        let format = ReceiptNumberFormat.yearMonth
+        let prefix = format.prefix(collectionName: "Test")
+        let collection = ReceiptCollection(
+            name: "Test",
+            receipts: [
+                Receipt(receiptNumber: "\(prefix)-001"),
+                Receipt(receiptNumber: "\(prefix)-003")
+            ]
+        )
+        let number = PersistenceService.shared.nextReceiptNumber(for: collection)
         XCTAssertEqual(number, "\(prefix)-004")
     }
 

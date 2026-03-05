@@ -21,8 +21,12 @@ enum ReceiptNumberFormat: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// Generates the prefix. For `.collectionName` supply the name; for `.custom` reads AppSettings.
-    func prefix(for date: Date = Date(), collectionName: String? = nil) -> String {
+    /// Generates the prefix for a receipt number.
+    /// - Parameters:
+    ///   - date: Date used for `.yearMonth` (defaults to now).
+    ///   - collectionName: The collection name, used for `.collectionName`.
+    ///   - customPrefix: The user-defined prefix, used for `.custom`.
+    func prefix(for date: Date = Date(), collectionName: String? = nil, customPrefix: String = "") -> String {
         switch self {
         case .yearMonth:
             let cal = Calendar.current
@@ -33,15 +37,15 @@ enum ReceiptNumberFormat: String, Codable, CaseIterable, Identifiable {
             let name = collectionName ?? "Collection"
             return Self.sanitizePrefix(name)
         case .custom:
-            return AppSettings.shared.customPrefix
+            return customPrefix.isEmpty ? "CUSTOM" : customPrefix
         }
     }
 
     /// Example string shown in settings.
-    func example(customPrefix: String = "") -> String {
+    func example(collectionName: String = "TripParis", customPrefix: String = "") -> String {
         switch self {
         case .yearMonth:      return "\(prefix())-001"
-        case .collectionName: return "TripParis-001"
+        case .collectionName: return "\(Self.sanitizePrefix(collectionName))-001"
         case .custom:
             let p = customPrefix.isEmpty ? "MY" : customPrefix
             return "\(p)-001"
@@ -58,49 +62,22 @@ enum ReceiptNumberFormat: String, Codable, CaseIterable, Identifiable {
 
 // MARK: - AppSettings
 
-/// Persists user preferences in UserDefaults.
+/// Persists global user preferences in UserDefaults.
+/// Numbering settings are now per-collection — only default tax remains global.
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
     private let defaults = UserDefaults.standard
 
-    // MARK: Keys
-
     private enum Key: String {
-        case receiptNumberFormat
-        case customPrefix
         case defaultTaxPercentage
-    }
-
-    // MARK: Published Properties
-
-    @Published var receiptNumberFormat: ReceiptNumberFormat {
-        didSet { defaults.set(receiptNumberFormat.rawValue, forKey: Key.receiptNumberFormat.rawValue) }
-    }
-
-    @Published var customPrefix: String {
-        didSet { defaults.set(customPrefix, forKey: Key.customPrefix.rawValue) }
     }
 
     @Published var defaultTaxPercentage: Double {
         didSet { defaults.set(defaultTaxPercentage, forKey: Key.defaultTaxPercentage.rawValue) }
     }
 
-    // MARK: Init
-
     private init() {
-        // Receipt number format
-        if let raw = defaults.string(forKey: Key.receiptNumberFormat.rawValue),
-           let fmt = ReceiptNumberFormat(rawValue: raw) {
-            self.receiptNumberFormat = fmt
-        } else {
-            self.receiptNumberFormat = .yearMonth
-        }
-
-        // Custom prefix
-        self.customPrefix = defaults.string(forKey: Key.customPrefix.rawValue) ?? ""
-
-        // Default tax percentage (0 means not yet set -> use 21)
         let storedTax = defaults.double(forKey: Key.defaultTaxPercentage.rawValue)
         self.defaultTaxPercentage = storedTax > 0 ? storedTax : 21.0
     }

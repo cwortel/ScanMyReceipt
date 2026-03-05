@@ -8,11 +8,16 @@ class PersistenceService {
 
     /// In-memory thumbnail cache using NSCache (auto-evicts under memory pressure).
     private let thumbnailCache = NSCache<NSString, UIImage>()
+    /// In-memory preview cache for medium-res images (~800px) used in edit forms.
+    private let previewCache = NSCache<NSString, UIImage>()
 
     private init() {
         // Limit cache: max 100 thumbnails, ~50 MB
         thumbnailCache.countLimit = 100
         thumbnailCache.totalCostLimit = 50 * 1024 * 1024
+        // Preview cache: fewer items, larger images (~25 MB)
+        previewCache.countLimit = 20
+        previewCache.totalCostLimit = 25 * 1024 * 1024
     }
 
     private var documentsDirectory: URL {
@@ -112,8 +117,12 @@ class PersistenceService {
         return thumb
     }
 
-    /// Loads a preview-sized image (e.g. for the edit form). Not full res.
+    /// Loads a preview-sized image (e.g. for the edit form). Cached in NSCache.
     func loadPreviewImage(fileName: String, maxDimension: CGFloat = 800) -> UIImage? {
+        let cacheKey = "\(fileName)_preview_\(Int(maxDimension))" as NSString
+        if let cached = previewCache.object(forKey: cacheKey) {
+            return cached
+        }
         let fileURL = imagesDirectory.appendingPathComponent(fileName)
         guard let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil) else { return nil }
         let options: [CFString: Any] = [
@@ -122,7 +131,9 @@ class PersistenceService {
             kCGImageSourceCreateThumbnailWithTransform: true
         ]
         guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
-        return UIImage(cgImage: cgImage)
+        let preview = UIImage(cgImage: cgImage)
+        previewCache.setObject(preview, forKey: cacheKey, cost: Int(maxDimension * maxDimension * 4))
+        return preview
     }
 
     func deleteImage(fileName: String) {
@@ -134,12 +145,14 @@ class PersistenceService {
 
     /// Generates the next receipt number scoped to the given collection.
     /// Each collection maintains its own independent sequence (001, 002, …).
-    func nextReceiptNumber(receiptsInCollection: [Receipt], collectionName: String? = nil) -> String {
-        let format = AppSettings.shared.receiptNumberFormat
-        let prefix = format.prefix(collectionName: collectionName)
+    func nextReceiptNumber(for collection: ReceiptCollection) -> String {
+        let prefix = collection.numberFormat.prefix(
+            collectionName: collection.name,
+            customPrefix: collection.customPrefix
+        )
 
         var maxNumber = 0
-        for receipt in receiptsInCollection {
+        for receipt in collection.receipts {
             if receipt.receiptNumber.hasPrefix(prefix + "-") {
                 let suffix = receipt.receiptNumber.replacingOccurrences(of: prefix + "-", with: "")
                 if let num = Int(suffix) {

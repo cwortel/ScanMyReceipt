@@ -11,7 +11,7 @@
 		AA100002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100002 /* ContentView.swift */; };
 		AA100003 /* Receipt.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100003 /* Receipt.swift */; };
 		AA100020 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100020 /* AppSettings.swift */; };
-		AA100021 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100021 /* SettingsView.swift */; };
+		AA100021 /* CollectionSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100021 /* CollectionSettingsView.swift */; };
 		AA100004 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100004 /* PersistenceService.swift */; };
 		AA100005 /* ScannerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100005 /* ScannerService.swift */; };
 		AA100006 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100006 /* ExportService.swift */; };
@@ -68,7 +68,7 @@
 		AB100017 /* TextRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRecognitionService.swift; sourceTree = "<group>"; };
 		AB100019 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
 		AB100020 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
-		AB100021 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AB100021 /* CollectionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSettingsView.swift; sourceTree = "<group>"; };
 		AB100018 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AB200001 /* ScanMyReceiptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMyReceiptTests.swift; sourceTree = "<group>"; };
 		AB300001 /* ScanMyReceiptUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMyReceiptUITests.swift; sourceTree = "<group>"; };
@@ -183,7 +183,7 @@
 				AB100014 /* ShareSheet.swift */,
 				AB100016 /* ImageViews.swift */,
 				AB100019 /* SplashScreenView.swift */,
-				AB100021 /* SettingsView.swift */,
+				AB100021 /* CollectionSettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -361,7 +361,7 @@
 				AA100017 /* TextRecognitionService.swift in Sources */,
 				AA100019 /* SplashScreenView.swift in Sources */,
 				AA100020 /* AppSettings.swift in Sources */,
-				AA100021 /* SettingsView.swift in Sources */,
+				AA100021 /* CollectionSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

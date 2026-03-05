@@ -55,10 +55,10 @@ class CollectionListViewModel: ObservableObject {
 
     // MARK: - Receipt CRUD
 
-    func addReceipt(_ receipt: Receipt, to collectionID: UUID) {
+    func addReceipt(_ receipt: Receipt, to collectionID: UUID, autoSave: Bool = true) {
         guard let idx = collections.firstIndex(where: { $0.id == collectionID }) else { return }
         collections[idx].receipts.append(receipt)
-        save()
+        if autoSave { save() }
     }
 
     func updateReceipt(_ receipt: Receipt, in collectionID: UUID) {
@@ -91,8 +91,32 @@ class CollectionListViewModel: ObservableObject {
 
     // MARK: - Receipt Numbering
 
-    func nextReceiptNumber(forCollectionID collectionID: UUID, collectionName: String? = nil) -> String {
-        let receipts = collections.first(where: { $0.id == collectionID })?.receipts ?? []
-        return persistence.nextReceiptNumber(receiptsInCollection: receipts, collectionName: collectionName)
+    func nextReceiptNumber(forCollectionID collectionID: UUID) -> String {
+        guard let collection = collections.first(where: { $0.id == collectionID }) else { return "000-001" }
+        return persistence.nextReceiptNumber(for: collection)
+    }
+
+    /// Renumbers all receipts in the collection sequentially (001, 002, …)
+    /// using the collection’s current numbering format.
+    func renumberReceipts(in collectionID: UUID) {
+        guard let ci = collections.firstIndex(where: { $0.id == collectionID }) else { return }
+        let collection = collections[ci]
+        let prefix = collection.numberFormat.prefix(
+            collectionName: collection.name,
+            customPrefix: collection.customPrefix
+        )
+        for i in collections[ci].receipts.indices {
+            collections[ci].receipts[i].receiptNumber = String(format: "%@-%03d", prefix, i + 1)
+        }
+        save()
+    }
+
+    /// Updates collection-level settings (format, prefix, tax).
+    func updateCollectionSettings(_ collectionID: UUID, numberFormat: ReceiptNumberFormat, customPrefix: String, defaultTax: Double) {
+        guard let ci = collections.firstIndex(where: { $0.id == collectionID }) else { return }
+        collections[ci].numberFormat = numberFormat
+        collections[ci].customPrefix = customPrefix
+        collections[ci].defaultTaxPercentage = defaultTax
+        save()
     }
 }

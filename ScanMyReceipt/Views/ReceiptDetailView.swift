@@ -14,6 +14,7 @@ struct CollectionDetailView: View {
     @State private var exportFiles: [URL] = []
     @State private var editingReceipt: Receipt?
     @State private var showingSplash = false
+    @State private var showingCollectionSettings = false
 
     private var collection: ReceiptCollection? {
         viewModel.collection(for: collectionID)
@@ -57,6 +58,9 @@ struct CollectionDetailView: View {
                 .navigationTitle(collection.name)
                 .toolbar {
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
+                        Button(action: { showingCollectionSettings = true }) {
+                            Image(systemName: "gearshape")
+                        }
                         Button(action: { showingScanner = true }) {
                             Image(systemName: "camera")
                         }
@@ -142,6 +146,9 @@ struct CollectionDetailView: View {
                         showingSplash = false
                     })
                 }
+                .sheet(isPresented: $showingCollectionSettings) {
+                    CollectionSettingsView(collectionID: collectionID)
+                }
             } else {
                 Text("Collection not found")
                     .foregroundColor(.secondary)
@@ -161,6 +168,8 @@ struct CollectionDetailView: View {
         // Process each image sequentially to get correct receipt numbers
         func processNext(index: Int) {
             guard index < images.count else {
+                // Batch-save once after all receipts are added
+                viewModel.save()
                 isProcessingOCR = false
                 ocrProgress = ""
                 return
@@ -173,7 +182,7 @@ struct CollectionDetailView: View {
             PersistenceService.shared.saveImage(image, fileName: fileName)
 
             TextRecognitionService.shared.recognizeReceipt(from: [image]) { recognizedData in
-                let number = viewModel.nextReceiptNumber(forCollectionID: collectionID, collectionName: collection?.name)
+                let number = viewModel.nextReceiptNumber(forCollectionID: collectionID)
                 var receipt = Receipt(
                     receiptNumber: number,
                     imageFileNames: [fileName]
@@ -184,7 +193,7 @@ struct CollectionDetailView: View {
                 if let taxPct = recognizedData.taxPercentage {
                     receipt.taxPercentage = taxPct
                 } else {
-                    receipt.taxPercentage = AppSettings.shared.defaultTaxPercentage
+                    receipt.taxPercentage = collection?.defaultTaxPercentage ?? 21.0
                 }
                 if let exclTax = recognizedData.amountWithoutTax {
                     receipt.amountWithoutTax = exclTax
@@ -196,7 +205,7 @@ struct CollectionDetailView: View {
                     }
                 }
 
-                viewModel.addReceipt(receipt, to: collectionID)
+                viewModel.addReceipt(receipt, to: collectionID, autoSave: false)
                 processNext(index: index + 1)
             }
         }
@@ -208,27 +217,55 @@ struct CollectionDetailView: View {
 
     private func exportPDF(_ c: ReceiptCollection) {
         exportFiles = []
-        if let url = ExportService.shared.generatePDF(for: c) { exportFiles.append(url) }
-        showShareSheetIfNeeded()
+        DispatchQueue.global(qos: .userInitiated).async {
+            let urls: [URL] = {
+                if let url = ExportService.shared.generatePDF(for: c) { return [url] }
+                return []
+            }()
+            DispatchQueue.main.async {
+                exportFiles = urls
+                showShareSheetIfNeeded()
+            }
+        }
     }
 
     private func exportCSV(_ c: ReceiptCollection) {
         exportFiles = []
-        if let url = ExportService.shared.generateCSV(for: c) { exportFiles.append(url) }
-        showShareSheetIfNeeded()
+        DispatchQueue.global(qos: .userInitiated).async {
+            let urls: [URL] = {
+                if let url = ExportService.shared.generateCSV(for: c) { return [url] }
+                return []
+            }()
+            DispatchQueue.main.async {
+                exportFiles = urls
+                showShareSheetIfNeeded()
+            }
+        }
     }
 
     private func exportFacturX(_ c: ReceiptCollection) {
-        exportFiles = ExportService.shared.generateFacturXFiles(for: c)
-        showShareSheetIfNeeded()
+        exportFiles = []
+        DispatchQueue.global(qos: .userInitiated).async {
+            let urls = ExportService.shared.generateFacturXFiles(for: c)
+            DispatchQueue.main.async {
+                exportFiles = urls
+                showShareSheetIfNeeded()
+            }
+        }
     }
 
     private func exportAll(_ c: ReceiptCollection) {
         exportFiles = []
-        if let url = ExportService.shared.generatePDF(for: c) { exportFiles.append(url) }
-        if let url = ExportService.shared.generateCSV(for: c) { exportFiles.append(url) }
-        exportFiles.append(contentsOf: ExportService.shared.generateFacturXFiles(for: c))
-        showShareSheetIfNeeded()
+        DispatchQueue.global(qos: .userInitiated).async {
+            var urls: [URL] = []
+            if let url = ExportService.shared.generatePDF(for: c) { urls.append(url) }
+            if let url = ExportService.shared.generateCSV(for: c) { urls.append(url) }
+            urls.append(contentsOf: ExportService.shared.generateFacturXFiles(for: c))
+            DispatchQueue.main.async {
+                exportFiles = urls
+                showShareSheetIfNeeded()
+            }
+        }
     }
 
     private func showShareSheetIfNeeded() {

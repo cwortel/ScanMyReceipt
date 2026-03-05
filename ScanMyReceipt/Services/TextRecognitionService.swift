@@ -19,6 +19,77 @@ class TextRecognitionService {
     static let shared = TextRecognitionService()
     private init() {}
 
+    // MARK: - Cached Regex & DateFormatters
+
+    // Product-line detection
+    private static let priceRegex = try! NSRegularExpression(pattern: "\\d+[,.]\\d{2}")
+    private static let qtyRegex = try! NSRegularExpression(pattern: "^\\d{1,3}\\s*[xX]?\\s+[a-zA-Z]")
+
+    // Classification helpers
+    private static let amountRegex = try! NSRegularExpression(pattern: "^[€$]?\\s*\\d+[,.]\\d{2}$")
+    private static let dateLineRegex = try! NSRegularExpression(pattern: "^\\d{2}[\\-/\\.]\\d{2}[\\-/\\.]\\d{2,4}(\\s*[,.]?\\s*\\d{2}[:\\.\\-]\\d{2}(:\\d{2})?)?$")
+    private static let postalRegex = try! NSRegularExpression(pattern: "\\b\\d{4}\\s*[a-z]{2}\\b")
+    private static let streetRegex = try! NSRegularExpression(pattern: "^[a-zA-Z]+\\s+\\d{1,5}$")
+    private static let timeOnlyRegex = try! NSRegularExpression(pattern: "^\\d{1,2}[:\\.]\\d{2}([:\\.]\\d{2})?$")
+    private static let genericPctRegex = try! NSRegularExpression(pattern: "(\\d{1,2})[,.]?\\d*\\s*%")
+    private static let tariefRegex = try! NSRegularExpression(pattern: "(?:tarief|rate).*?(\\d{1,2})[,.]\\d+\\s*%")
+
+    // Order/table patterns
+    private static let orderTablePatterns: [NSRegularExpression] = [
+        try! NSRegularExpression(pattern: "^(tafel|table|order|bestelling|bon|nr\\.?|#)\\s*\\d+", options: .caseInsensitive),
+        try! NSRegularExpression(pattern: "^\\d{1,3}$"),
+        try! NSRegularExpression(pattern: "^\\d{1,3}\\s+\\w{1,3}$"),
+    ]
+
+    // Date extraction patterns (regex + DateFormatters)
+    private static let datePatterns: [(regex: NSRegularExpression, formatters: [DateFormatter])] = {
+        func makeDateFormatters(_ formats: [String]) -> [DateFormatter] {
+            formats.map { fmt in
+                let df = DateFormatter()
+                df.dateFormat = fmt
+                df.locale = Locale(identifier: "nl_NL")
+                return df
+            }
+        }
+        return [
+            (try! NSRegularExpression(pattern: "(\\d{2})[\\-/\\.](\\d{2})[\\-/\\.](\\d{4})"),
+             makeDateFormatters(["dd-MM-yyyy", "dd/MM/yyyy", "dd.MM.yyyy"])),
+            (try! NSRegularExpression(pattern: "(\\d{4})[\\-/\\.](\\d{2})[\\-/\\.](\\d{2})"),
+             makeDateFormatters(["yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd"])),
+            (try! NSRegularExpression(pattern: "\\b(\\d{2})[\\-/\\.](\\d{2})[\\-/\\.](\\d{2})\\b"),
+             makeDateFormatters(["dd-MM-yy", "dd/MM/yy", "dd.MM.yy"])),
+        ]
+    }()
+
+    // Tax percentage detection
+    private static let taxPatterns: [(regex: NSRegularExpression, pct: Double)] = [
+        (try! NSRegularExpression(pattern: "btw\\s*(?:hoog)?\\s*21"), 21.0),
+        (try! NSRegularExpression(pattern: "21[,.]?\\d*\\s*%\\s*btw"), 21.0),
+        (try! NSRegularExpression(pattern: "btw\\s*21[,.]?\\d*\\s*%"), 21.0),
+        (try! NSRegularExpression(pattern: "btw\\s*(?:laag)?\\s*9"), 9.0),
+        (try! NSRegularExpression(pattern: "9[,.]00\\s*%"), 9.0),
+        (try! NSRegularExpression(pattern: "9\\s*%\\s*btw"), 9.0),
+        (try! NSRegularExpression(pattern: "btw\\s*9[,.]?\\d*\\s*%"), 9.0),
+        (try! NSRegularExpression(pattern: "btw\\s*0"), 0.0),
+        (try! NSRegularExpression(pattern: "0[,.]?\\d*\\s*%\\s*btw"), 0.0),
+        (try! NSRegularExpression(pattern: "vat\\s*21"), 21.0),
+        (try! NSRegularExpression(pattern: "21[,.]?\\d*\\s*%\\s*vat"), 21.0),
+        (try! NSRegularExpression(pattern: "vat\\s*9"), 9.0),
+        (try! NSRegularExpression(pattern: "9[,.]?\\d*\\s*%\\s*vat"), 9.0),
+    ]
+
+    // Amount extraction
+    private static let amountPatterns: [NSRegularExpression] = [
+        try! NSRegularExpression(pattern: "€\\s*([\\d.]+,\\d{2})"),
+        try! NSRegularExpression(pattern: "€\\s*([\\d,]+\\.\\d{2})"),
+        try! NSRegularExpression(pattern: "EUR\\s*([\\d.]+,\\d{2})"),
+        try! NSRegularExpression(pattern: "EUR\\s*([\\d,]+\\.\\d{2})"),
+        try! NSRegularExpression(pattern: "([\\d.]+,\\d{2})\\s*€"),
+        try! NSRegularExpression(pattern: "([\\d,]+\\.\\d{2})\\s*€"),
+        try! NSRegularExpression(pattern: "\\b(\\d+,\\d{2})\\b"),
+        try! NSRegularExpression(pattern: "\\b(\\d+\\.\\d{2})\\b"),
+    ]
+
     // MARK: - Public API
 
     /// Runs OCR on all images, combines text, and parses receipt fields.
@@ -157,16 +228,12 @@ class TextRecognitionService {
         let lower = trimmed.lowercased()
 
         // Line contains an amount (€ or bare price pattern like "3,50" or "12.34")
-        let pricePattern = "\\d+[,.]\\d{2}"
-        if let regex = try? NSRegularExpression(pattern: pricePattern),
-           regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)) != nil {
+        if Self.priceRegex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)) != nil {
             return true
         }
 
         // Starts with a quantity: "1 ", "2x ", "1x", "3 x "
-        let qtyPattern = "^\\d{1,3}\\s*[xX]?\\s+[a-zA-Z]"
-        if let regex = try? NSRegularExpression(pattern: qtyPattern),
-           regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)) != nil {
+        if Self.qtyRegex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)) != nil {
             return true
         }
 
@@ -180,30 +247,13 @@ class TextRecognitionService {
 
     /// Tries several date formats common on Dutch & EU receipts.
     private func extractDate(from text: String) -> Date? {
-        let patterns: [(regex: String, formats: [String])] = [
-            // DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY
-            ("(\\d{2})[\\-/\\.](\\d{2})[\\-/\\.](\\d{4})",
-             ["dd-MM-yyyy", "dd/MM/yyyy", "dd.MM.yyyy"]),
-            // YYYY-MM-DD
-            ("(\\d{4})[\\-/\\.](\\d{2})[\\-/\\.](\\d{2})",
-             ["yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd"]),
-            // DD-MM-YY
-            ("\\b(\\d{2})[\\-/\\.](\\d{2})[\\-/\\.](\\d{2})\\b",
-             ["dd-MM-yy", "dd/MM/yy", "dd.MM.yy"]),
-        ]
-
-        for (pattern, formats) in patterns {
-            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+        for (regex, formatters) in Self.datePatterns {
             let range = NSRange(text.startIndex..., in: text)
-            // Check all matches — the first match might be a phone number or code
             let matches = regex.matches(in: text, range: range)
             for match in matches {
                 guard let matchRange = Range(match.range, in: text) else { continue }
                 let matchStr = String(text[matchRange])
-                for fmt in formats {
-                    let df = DateFormatter()
-                    df.dateFormat = fmt
-                    df.locale = Locale(identifier: "nl_NL")
+                for df in formatters {
                     if let date = df.date(from: matchStr) {
                         let year = Calendar.current.component(.year, from: date)
                         if year >= 2020 && year <= 2030 { return date }
@@ -254,50 +304,29 @@ class TextRecognitionService {
     /// Detects BTW / VAT percentage from the recognized text.
     private func extractTaxPercentage(from text: String) -> Double? {
         let lower = text.lowercased()
+        let range = NSRange(lower.startIndex..., in: lower)
 
-        // Explicit keyword + percentage combos (handles both "21%" and "21,00%")
-        let patterns: [(String, Double)] = [
-            ("btw\\s*(?:hoog)?\\s*21", 21.0),
-            ("21[,.]?\\d*\\s*%\\s*btw", 21.0),
-            ("btw\\s*21[,.]?\\d*\\s*%", 21.0),
-            ("btw\\s*(?:laag)?\\s*9", 9.0),
-            ("9[,.]00\\s*%", 9.0),
-            ("9\\s*%\\s*btw", 9.0),
-            ("btw\\s*9[,.]?\\d*\\s*%", 9.0),
-            ("btw\\s*0", 0.0),
-            ("0[,.]?\\d*\\s*%\\s*btw", 0.0),
-            ("vat\\s*21", 21.0),
-            ("21[,.]?\\d*\\s*%\\s*vat", 21.0),
-            ("vat\\s*9", 9.0),
-            ("9[,.]?\\d*\\s*%\\s*vat", 9.0),
-        ]
-
-        for (pattern, pct) in patterns {
-            if let regex = try? NSRegularExpression(pattern: pattern),
-               regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)) != nil {
+        // Explicit keyword + percentage combos
+        for (regex, pct) in Self.taxPatterns {
+            if regex.firstMatch(in: lower, range: range) != nil {
                 return pct
             }
         }
 
         // Generic: look for percentage near BTW/VAT keywords.
-        // Handles both "9%" and "9,00%" comma-decimal formats.
         if lower.contains("btw") || lower.contains("vat") {
-            let pctPattern = "(\\d{1,2})[,.]?\\d*\\s*%"
-            if let regex = try? NSRegularExpression(pattern: pctPattern),
-               let match = regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)),
-               let range = Range(match.range(at: 1), in: lower) {
-                if let pct = Double(String(lower[range])), [0, 9, 21].contains(Int(pct)) {
+            if let match = Self.genericPctRegex.firstMatch(in: lower, range: range),
+               let pctRange = Range(match.range(at: 1), in: lower) {
+                if let pct = Double(String(lower[pctRange])), [0, 9, 21].contains(Int(pct)) {
                     return pct
                 }
             }
         }
 
-        // Also look for "tarief" (Dutch for rate/tariff) lines like "9,00% A"
-        let tariefPattern = "(?:tarief|rate).*?(\\d{1,2})[,.]\\d+\\s*%"
-        if let regex = try? NSRegularExpression(pattern: tariefPattern),
-           let match = regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)),
-           let range = Range(match.range(at: 1), in: lower) {
-            if let pct = Double(String(lower[range])), [0, 9, 21].contains(Int(pct)) {
+        // Also look for "tarief" (Dutch for rate/tariff) lines
+        if let match = Self.tariefRegex.firstMatch(in: lower, range: range),
+           let pctRange = Range(match.range(at: 1), in: lower) {
+            if let pct = Double(String(lower[pctRange])), [0, 9, 21].contains(Int(pct)) {
                 return pct
             }
         }
@@ -310,24 +339,13 @@ class TextRecognitionService {
     /// Extracts a monetary amount from a line of text, handling both
     /// Dutch (comma-decimal) and English (dot-decimal) formats.
     private func extractAmount(from text: String) -> Double? {
-        let patterns = [
-            "€\\s*([\\d.]+,\\d{2})",         // €1.234,56  or €12,34
-            "€\\s*([\\d,]+\\.\\d{2})",        // €1,234.56  or €12.34
-            "EUR\\s*([\\d.]+,\\d{2})",
-            "EUR\\s*([\\d,]+\\.\\d{2})",
-            "([\\d.]+,\\d{2})\\s*€",
-            "([\\d,]+\\.\\d{2})\\s*€",
-            "\\b(\\d+,\\d{2})\\b",            // bare 12,34
-            "\\b(\\d+\\.\\d{2})\\b",          // bare 12.34
-        ]
-
-        for pattern in patterns {
-            guard let regex = try? NSRegularExpression(pattern: pattern),
-                  let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-                  let range = Range(match.range(at: 1), in: text) else { continue }
-            let raw = String(text[range])
-            if let amount = normalizeAmount(raw), amount > 0 {
-                return amount
+        for regex in Self.amountPatterns {
+            if let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+               let range = Range(match.range(at: 1), in: text) {
+                let raw = String(text[range])
+                if let amount = normalizeAmount(raw), amount > 0 {
+                    return amount
+                }
             }
         }
         return nil
@@ -359,30 +377,19 @@ class TextRecognitionService {
     // MARK: - Classification Helpers
 
     private func looksLikeAmount(_ text: String) -> Bool {
-        let pattern = "^[€$]?\\s*\\d+[,.]\\d{2}$"
-        return (try? NSRegularExpression(pattern: pattern))?
-            .firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
+        Self.amountRegex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
 
     private func looksLikeDate(_ text: String) -> Bool {
-        // Matches "DD-MM-YYYY", "DD-MM-YYYY, HH:MM:SS", etc.
-        let pattern = "^\\d{2}[\\-/\\.]\\d{2}[\\-/\\.]\\d{2,4}(\\s*[,.]?\\s*\\d{2}[:\\.\\-]\\d{2}(:\\d{2})?)?$"
-        return (try? NSRegularExpression(pattern: pattern))?
-            .firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
+        Self.dateLineRegex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
 
     private func looksLikeAddress(_ text: String) -> Bool {
         let lower = text.lowercased()
-        // Dutch postal code: 1234 AB
-        let postalPattern = "\\b\\d{4}\\s*[a-z]{2}\\b"
-        if let regex = try? NSRegularExpression(pattern: postalPattern),
-           regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)) != nil {
+        if Self.postalRegex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)) != nil {
             return true
         }
-        // Street address: word + number (e.g. "Vleutenseweg 169")
-        let streetPattern = "^[a-zA-Z]+\\s+\\d{1,5}$"
-        if let regex = try? NSRegularExpression(pattern: streetPattern),
-           regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil {
+        if Self.streetRegex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil {
             return true
         }
         return false
@@ -423,14 +430,9 @@ class TextRecognitionService {
     /// Lines like "Table 1", "Tafel 3", "Order 42", "#123", "Nr. 5"
     private func looksLikeOrderOrTableLine(_ text: String) -> Bool {
         let lower = text.lowercased().trimmingCharacters(in: .whitespaces)
-        let patterns = [
-            "^(tafel|table|order|bestelling|bon|nr\\.?|#)\\s*\\d+",  // "Tafel 1", "Order 42", "#123"
-            "^\\d{1,3}$",                                             // just a bare number like "1", "42"
-            "^\\d{1,3}\\s+\\w{1,3}$",                                // "1 st", "2 x"
-        ]
-        for pattern in patterns {
-            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
-               regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)) != nil {
+        let range = NSRange(lower.startIndex..., in: lower)
+        for regex in Self.orderTablePatterns {
+            if regex.firstMatch(in: lower, range: range) != nil {
                 return true
             }
         }
@@ -439,8 +441,6 @@ class TextRecognitionService {
 
     /// Lines that are only a time, e.g. "13:45", "13:45:20"
     private func looksLikeTimeOnly(_ text: String) -> Bool {
-        let pattern = "^\\d{1,2}[:\\.]\\d{2}([:\\.]\\d{2})?$"
-        return (try? NSRegularExpression(pattern: pattern))?
-            .firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
+        Self.timeOnlyRegex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
 }

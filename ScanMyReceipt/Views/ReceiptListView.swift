@@ -8,7 +8,6 @@ struct CollectionListView: View {
     @State private var renamingCollection: ReceiptCollection?
     @State private var renameText = ""
     @State private var showingSplash = false
-    @State private var showingSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -70,11 +69,6 @@ struct CollectionListView: View {
         }
         .navigationTitle("Collections")
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: { showingSettings = true }) {
-                    Image(systemName: "gearshape")
-                }
-            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: { showingNewCollection = true }) {
                     Image(systemName: "plus")
@@ -114,9 +108,6 @@ struct CollectionListView: View {
             SplashScreenView(onDismiss: {
                 showingSplash = false
             })
-        }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
         }
     }
 }

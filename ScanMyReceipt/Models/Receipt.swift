@@ -29,4 +29,13 @@ struct ReceiptCollection: Identifiable, Codable, Equatable {
     var name: String
     var createdDate: Date = Date()
     var receipts: [Receipt] = []
+
+    // MARK: Per-collection settings
+
+    /// Numbering format for receipts in this collection.
+    var numberFormat: ReceiptNumberFormat = .yearMonth
+    /// Custom prefix used when `numberFormat == .custom`.
+    var customPrefix: String = ""
+    /// Default tax percentage for new receipts in this collection.
+    var defaultTaxPercentage: Double = 21.0
 }
