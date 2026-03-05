@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// Shows all receipts inside a single collection.
 /// Allows scanning new receipts, editing existing ones, and exporting.
@@ -16,6 +17,7 @@ struct CollectionDetailView: View {
     @State private var showingSplash = false
     @State private var showingCollectionSettings = false
     @State private var allowTaps = false
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
 
     private var collection: ReceiptCollection? {
         viewModel.collection(for: collectionID)
@@ -39,7 +41,7 @@ struct CollectionDetailView: View {
                     }
 
                     if collection.receipts.isEmpty {
-                        Text("No Receipts yet.\nTap the camera to start scanning.")
+                        Text("No Receipts yet.\nTap the camera to scan or the photo icon to import.")
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
@@ -72,6 +74,13 @@ struct CollectionDetailView: View {
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
                         Button(action: { showingCollectionSettings = true }) {
                             Image(systemName: "gearshape")
+                        }
+                        PhotosPicker(
+                            selection: $selectedPhotoItems,
+                            maxSelectionCount: 20,
+                            matching: .images
+                        ) {
+                            Image(systemName: "photo.on.rectangle")
                         }
                         Button(action: { showingScanner = true }) {
                             Image(systemName: "camera")
@@ -163,9 +172,41 @@ struct CollectionDetailView: View {
                 .sheet(isPresented: $showingCollectionSettings) {
                     CollectionSettingsView(collectionID: collectionID)
                 }
+                .onChange(of: selectedPhotoItems) { items in
+                    guard !items.isEmpty else { return }
+                    loadAndProcessPhotos(items)
+                    selectedPhotoItems = []
+                }
             } else {
                 Text("Collection not found")
                     .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    // MARK: - Photo Library Import
+
+    /// Loads UIImages from PhotosPicker selections and feeds them into
+    /// the same OCR pipeline used for scanned receipts.
+    private func loadAndProcessPhotos(_ items: [PhotosPickerItem]) {
+        isProcessingOCR = true
+        ocrProgress = "Loading photos\u{2026}"
+
+        Task {
+            var images: [UIImage] = []
+            for item in items {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    images.append(image)
+                }
+            }
+            await MainActor.run {
+                if images.isEmpty {
+                    isProcessingOCR = false
+                    ocrProgress = ""
+                } else {
+                    processScannedImages(images)
+                }
             }
         }
     }
