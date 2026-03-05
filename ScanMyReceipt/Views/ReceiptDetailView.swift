@@ -111,7 +111,7 @@ struct CollectionDetailView: View {
                 .confirmationDialog("Export Collection", isPresented: $showingExportOptions) {
                     Button("PDF (Receipt Images)") { exportPDF(collection) }
                     Button("CSV (Spreadsheet)") { exportCSV(collection) }
-                    Button("PDF + UBL (Factur-X)") { exportFacturX(collection) }
+                    Button("UBL + PDF (E-Invoice)") { exportUBL(collection) }
                     Button("All Formats") { exportAll(collection) }
                     Button("Cancel", role: .cancel) {}
                 }
@@ -240,9 +240,9 @@ struct CollectionDetailView: View {
         }
     }
 
-    private func exportFacturX(_ c: ReceiptCollection) {
+    private func exportUBL(_ c: ReceiptCollection) {
         DispatchQueue.global(qos: .userInitiated).async {
-            let urls = ExportService.shared.generateFacturXFiles(for: c)
+            let urls = ExportService.shared.generateUBLFiles(for: c)
             DispatchQueue.main.async {
                 presentShareSheet(urls)
             }
@@ -254,7 +254,7 @@ struct CollectionDetailView: View {
             var urls: [URL] = []
             if let url = ExportService.shared.generatePDF(for: c) { urls.append(url) }
             if let url = ExportService.shared.generateCSV(for: c) { urls.append(url) }
-            urls.append(contentsOf: ExportService.shared.generateFacturXFiles(for: c))
+            urls.append(contentsOf: ExportService.shared.generateUBLFiles(for: c))
             DispatchQueue.main.async {
                 presentShareSheet(urls)
             }

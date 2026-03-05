@@ -64,7 +64,7 @@ final class ScanMyReceiptTests: XCTestCase {
         }
     }
 
-    // MARK: - UBL / Factur-X Export
+    // MARK: - UBL Export
 
     func testUBLXMLContent() {
         var receipt = Receipt()
@@ -79,6 +79,10 @@ final class ScanMyReceiptTests: XCTestCase {
         XCTAssertTrue(xml.contains("<cbc:Name>Jumbo</cbc:Name>"))
         XCTAssertTrue(xml.contains("PayableAmount"))
         XCTAssertTrue(xml.contains("24.20"))
+        // NLCIUS customization ID
+        XCTAssertTrue(xml.contains("nlcius"))
+        // PDF reference
+        XCTAssertTrue(xml.contains("Receipt_202603-001.pdf"))
     }
 
     // MARK: - Collection ViewModel

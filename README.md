@@ -9,7 +9,7 @@ ScanMyReceipt is an iOS app that turns paper receipts into organized digital rec
 - **Organize in Collections** — Group your receipts however you like — by month, by project, by trip. Each collection gets its own numbering and settings.
 - **Flexible Receipt Numbering** — Number your receipts by year and month (e.g. 202603-001), by collection name, or with a custom prefix. Renumber an entire collection with one tap.
 - **Quick Tax Calculation** — Select 0%, 9%, or 21% VAT and the amounts excluding tax are calculated instantly.
-- **Export Anywhere** — Share your receipts as a PDF with images, a CSV spreadsheet, or Factur-X e-invoices. Send them by email, save to Files, or AirDrop — whatever works for you.
+- **Export Anywhere** — Share your receipts as a PDF with images, a CSV spreadsheet, or UBL e-invoices with paired PDFs. Send them by email, save to Files, or AirDrop — whatever works for you.
 - **View Receipt Images** — Swipe through your scanned pages, pinch to zoom in on details, or double-tap to magnify.
 - **Private by Design** — All data lives on your device. Nothing is uploaded anywhere unless you choose to share it.
 
@@ -68,7 +68,7 @@ Tap the **share icon** and pick a format:
 |---|---|
 | **PDF** | A4 pages with receipt images and receipt numbers |
 | **CSV** | Spreadsheet with number, shop, date, total, excl. tax, and tax % |
-| **Factur-X** | Per-receipt PDF with embedded e-invoice XML (EU standard) |
+| **UBL + PDF** | Per-receipt UBL 2.1 XML e-invoice + matching PDF with receipt image. Import the XML into your bookkeeping system; the PDF is linked by filename. |
 | **All Formats** | Everything above, bundled together |
 
 Files are shared via the standard iOS share sheet.
@@ -135,7 +135,7 @@ Each tier uses a dedicated `NSCache` instance with automatic eviction under memo
 
 - **PDF** — `UIGraphicsPDFRenderer` generates A4 pages. Each receipt image is aspect-fitted onto a page with the receipt number rendered as a label in the top-left corner. Uses `autoreleasepool` per page to keep memory flat during large exports.
 - **CSV** — RFC 4180–compliant comma-separated values. Fields with commas or quotes are properly escaped.
-- **Factur-X** — Each receipt produces a standalone PDF with an embedded UBL 2.1 XML invoice. The XML is injected into the PDF via incremental updates — writing the filespec, embedded file stream, names dictionary, cross-reference table, and trailer directly. The UBL includes supplier party, tax totals, legal monetary totals, and a single invoice line. No third-party PDF library is used.
+- **UBL + PDF** — Each receipt produces two files with matching base names (e.g. `Receipt_202603-001.xml` + `Receipt_202603-001.pdf`). The UBL 2.1 XML contains an `AdditionalDocumentReference` pointing to the PDF filename so bookkeeping systems like Digiboox can link the structured data to the receipt image. The XML includes NLCIUS-compliant fields: `CustomizationID`, supplier/customer party, postal address with country code, tax totals with category, legal monetary totals, and a fully classified invoice line.
 
 ### Navigation Structure
 
@@ -164,7 +164,7 @@ ScanMyReceipt/
 │   ├── ScannerService.swift         # VisionKit document camera wrapper
 │   ├── TextRecognitionService.swift # Vision OCR with Dutch-optimized parsing
 │   ├── PersistenceService.swift     # JSON + JPEG file storage, image pipeline
-│   └── ExportService.swift          # PDF, CSV, and Factur-X generation
+│   └── ExportService.swift          # PDF, CSV, and UBL XML generation
 ├── ViewModels/
 │   ├── ReceiptListViewModel.swift   # Collection & receipt CRUD, numbering logic
 │   └── ScannerViewModel.swift       # Scanner state management
