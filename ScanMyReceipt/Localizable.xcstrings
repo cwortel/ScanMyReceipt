@@ -76,6 +76,9 @@
     "Export Collection" : {
 
     },
+    "Global Settings" : {
+
+    },
     "New category" : {
 
     },
@@ -148,13 +151,16 @@
     "Scanned Images" : {
 
     },
-    "Shared across all collections. Swipe to delete, drag to reorder." : {
+    "Swipe to delete, drag to reorder." : {
 
     },
     "Tax %" : {
 
     },
     "Tax amount" : {
+
+    },
+    "The settings below are shared across all collections." : {
 
     },
     "This will reassign all receipt numbers using **%@** sequentially. This cannot be undone." : {

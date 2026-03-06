@@ -94,6 +94,15 @@ struct CollectionSettingsView: View {
                     Text("Pre-selected tax rate for newly scanned receipts. OCR may override this if it detects a tax rate on the receipt.")
                 }
 
+                // MARK: Global Settings
+                Section {
+                    Text("The settings below are shared across all collections.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                } header: {
+                    Text("Global Settings")
+                }
+
                 // MARK: Categories
                 Section {
                     ForEach(appSettings.categories, id: \.self) { cat in
@@ -123,7 +132,7 @@ struct CollectionSettingsView: View {
                 } header: {
                     Text("Categories")
                 } footer: {
-                    Text("Shared across all collections. Swipe to delete, drag to reorder.")
+                    Text("Swipe to delete, drag to reorder.")
                 }
             }
             .navigationTitle("Collection Settings")

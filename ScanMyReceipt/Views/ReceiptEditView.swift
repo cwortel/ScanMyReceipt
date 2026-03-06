@@ -69,13 +69,37 @@ struct ReceiptEditView: View {
 
                 // MARK: Category
                 Section("Category") {
-                    Picker("Category", selection: $selectedCategory) {
-                        Text("None").tag("")
+                    Menu {
+                        Button {
+                            selectedCategory = ""
+                        } label: {
+                            if selectedCategory.isEmpty {
+                                Label("None", systemImage: "checkmark")
+                            } else {
+                                Text("None")
+                            }
+                        }
                         ForEach(categories, id: \.self) { cat in
-                            Text(cat).tag(cat)
+                            Button {
+                                selectedCategory = cat
+                            } label: {
+                                if selectedCategory == cat {
+                                    Label(cat, systemImage: "checkmark")
+                                } else {
+                                    Text(cat)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(selectedCategory.isEmpty ? "None" : selectedCategory)
+                                .foregroundColor(selectedCategory.isEmpty ? .secondary : .primary)
+                            Spacer()
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
-                    .pickerStyle(.menu)
                 }
 
                 // MARK: Amounts
