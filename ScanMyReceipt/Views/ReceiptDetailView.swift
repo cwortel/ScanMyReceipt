@@ -307,28 +307,24 @@ struct ReceiptRow: View {
                 .cornerRadius(6)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(receipt.receiptNumber)
-                    .font(.headline)
-                Text(receipt.shopName.isEmpty ? "No shop name" : receipt.shopName)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
                 HStack {
-                    Text(receipt.purchaseDate, style: .date)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    if !receipt.category.isEmpty {
-                        Text(receipt.category)
-                            .font(.caption2.weight(.medium))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.accentColor.opacity(0.15))
-                            .foregroundColor(.accentColor)
-                            .clipShape(Capsule())
-                    }
+                    Text(receipt.receiptNumber)
+                        .font(.headline)
                     Spacer()
                     Text(receipt.totalAmount.euroFormatted)
                         .font(.subheadline)
                         .fontWeight(.medium)
+                }
+                Text(receipt.shopName.isEmpty ? "No shop name" : receipt.shopName)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                Text(receipt.purchaseDate, style: .date)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                if !receipt.category.isEmpty {
+                    Text(receipt.category)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
         }
