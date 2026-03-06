@@ -43,7 +43,7 @@
     "Collection not found" : {
 
     },
-    "Collection Settings" : {
+    "Collection Setup" : {
 
     },
     "Collections" : {
@@ -115,7 +115,7 @@
     "Previously exported files will not be updated." : {
 
     },
-    "Reassigns sequential numbers (001, 002, …) to all receipts in their current order." : {
+    "Reassigns sequential numbers (001, 002, …) to all receipts in their current order, in the current collection." : {
 
     },
     "Receipt Details" : {

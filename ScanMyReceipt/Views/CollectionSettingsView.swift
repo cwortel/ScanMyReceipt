@@ -21,6 +21,15 @@ struct CollectionSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: Collection Setup header
+                Section {
+                } header: {
+                    Text("Collection Setup")
+                        .font(.title3.weight(.semibold))
+                        .foregroundColor(.primary)
+                        .textCase(nil)
+                }
+
                 // MARK: Receipt Numbering
                 Section {
                     ForEach(ReceiptNumberFormat.allCases) { format in
@@ -77,7 +86,7 @@ struct CollectionSettingsView: View {
                     }
                     .disabled(collection?.receipts.isEmpty ?? true)
                 } footer: {
-                    Text("Reassigns sequential numbers (001, 002, …) to all receipts in their current order.")
+                    Text("Reassigns sequential numbers (001, 002, …) to all receipts in their current order, in the current collection.")
                 }
 
                 // MARK: Default Tax
@@ -94,13 +103,15 @@ struct CollectionSettingsView: View {
                     Text("Pre-selected tax rate for newly scanned receipts. OCR may override this if it detects a tax rate on the receipt.")
                 }
 
-                // MARK: Global Settings
+                // MARK: Global Settings header
                 Section {
-                    Text("The settings below are shared across all collections.")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
                 } header: {
                     Text("Global Settings")
+                        .font(.title3.weight(.semibold))
+                        .foregroundColor(.primary)
+                        .textCase(nil)
+                } footer: {
+                    Text("The settings below are shared across all collections.")
                 }
 
                 // MARK: Categories
@@ -135,7 +146,6 @@ struct CollectionSettingsView: View {
                     Text("Swipe to delete, drag to reorder.")
                 }
             }
-            .navigationTitle("Collection Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

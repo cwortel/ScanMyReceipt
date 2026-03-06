@@ -15,6 +15,7 @@ struct CollectionDetailView: View {
     @State private var editingReceipt: Receipt?
     @State private var showingSplash = false
     @State private var showingCollectionSettings = false
+    @State private var allowTaps = false
 
     private var collection: ReceiptCollection? {
         viewModel.collection(for: collectionID)
@@ -29,6 +30,7 @@ struct CollectionDetailView: View {
                         ReceiptRow(receipt: receipt)
                             .contentShape(Rectangle())
                             .onTapGesture {
+                                guard allowTaps else { return }
                                 editingReceipt = receipt
                             }
                     }
@@ -56,6 +58,16 @@ struct CollectionDetailView: View {
                     .onTapGesture { showingSplash = true }
                 }
                 .navigationTitle(collection.name)
+                .onAppear {
+                    // Brief delay so a fast double-tap from the collection list
+                    // doesn't accidentally open the first receipt.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        allowTaps = true
+                    }
+                }
+                .onDisappear {
+                    allowTaps = false
+                }
                 .toolbar {
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
                         Button(action: { showingCollectionSettings = true }) {
