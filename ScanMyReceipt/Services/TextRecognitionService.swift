@@ -1,5 +1,5 @@
 import Foundation
-import Vision
+@preconcurrency import Vision
 import UIKit
 
 // MARK: - Recognized Data
@@ -120,9 +120,13 @@ class TextRecognitionService {
             }
 
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            // nonisolated(unsafe) silences Sendable warnings for Vision types
+            // that are safe to use from a background queue.
+            nonisolated(unsafe) let sendableHandler = handler
+            nonisolated(unsafe) let sendableRequest = request
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
-                    try handler.perform([request])
+                    try sendableHandler.perform([sendableRequest])
                 } catch {
                     print("Document detection failed: \(error)")
                     continuation.resume(returning: image)
