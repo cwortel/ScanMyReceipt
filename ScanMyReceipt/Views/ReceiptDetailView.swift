@@ -197,10 +197,10 @@ struct CollectionDetailView: View {
             var images: [UIImage] = []
             for (i, item) in items.enumerated() {
                 await MainActor.run {
-                    ocrProgress = "Cropping photo \(i + 1) of \(items.count)\u{2026}"
+                    ocrProgress = "Processing photo \(i + 1) of \(items.count)\u{2026}"
                 }
                 if let data = try? await item.loadTransferable(type: Data.self),
-                   let image = UIImage(data: data) {
+                   let image = Self.downsampleFromData(data, maxDimension: 2000) {
                     let cropped = await TextRecognitionService.shared.cropDocument(from: image)
                     images.append(cropped)
                 }
@@ -214,6 +214,25 @@ struct CollectionDetailView: View {
                 }
             }
         }
+    }
+
+    /// Downsamples an image directly from raw data without loading the
+    /// full-resolution bitmap — keeps peak memory low for large photos.
+    /// Also normalises EXIF orientation into pixel data.
+    private static func downsampleFromData(_ data: Data, maxDimension: CGFloat) -> UIImage? {
+        let options: [CFString: Any] = [
+            kCGImageSourceShouldCache: false
+        ]
+        guard let source = CGImageSourceCreateWithData(data as CFData, options as CFDictionary) else { return nil }
+
+        let downsampleOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,   // applies EXIF orientation
+            kCGImageSourceThumbnailMaxPixelSize: maxDimension
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions as CFDictionary) else { return nil }
+        return UIImage(cgImage: cgImage)
     }
 
     // MARK: - Scan Processing

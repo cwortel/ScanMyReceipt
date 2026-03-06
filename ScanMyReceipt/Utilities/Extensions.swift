@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 extension Bundle {
     /// "1.0.42" — short version + build number.
@@ -50,5 +51,18 @@ extension Double {
     /// Formats as "12,34" (no currency symbol) for text field display.
     var dutchFormatted: String {
         Self.dutchDecimalFormatter.string(from: NSNumber(value: self)) ?? "0,00"
+    }
+}
+
+extension UIImage {
+    /// Redraws the image so its pixel data matches `.up` orientation,
+    /// removing any EXIF rotation flag. This prevents photos imported
+    /// from the photo library from appearing rotated.
+    func normalizedOrientation() -> UIImage {
+        guard imageOrientation != .up else { return self }
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 }
