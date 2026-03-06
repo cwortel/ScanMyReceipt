@@ -31,6 +31,12 @@
     "Cancel" : {
 
     },
+    "Categories" : {
+
+    },
+    "Category" : {
+
+    },
     "Collection name" : {
 
     },
@@ -70,6 +76,9 @@
     "Export Collection" : {
 
     },
+    "New category" : {
+
+    },
     "New Collection" : {
 
     },
@@ -80,6 +89,9 @@
 
     },
     "No Receipts yet.\nTap the camera to start scanning." : {
+
+    },
+    "None" : {
 
     },
     "PDF (Receipt Images)" : {
@@ -134,6 +146,9 @@
 
     },
     "Scanned Images" : {
+
+    },
+    "Shared across all collections. Swipe to delete, drag to reorder." : {
 
     },
     "Tax %" : {

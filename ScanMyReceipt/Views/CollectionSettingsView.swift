@@ -1,16 +1,17 @@
 import SwiftUI
 
-/// Per-collection settings: numbering format, custom prefix, default tax, categories.
+/// Per-collection settings: numbering format, custom prefix, default tax.
+/// Categories are a global setting shared across all collections.
 struct CollectionSettingsView: View {
     let collectionID: UUID
     @EnvironmentObject var viewModel: CollectionListViewModel
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var appSettings = AppSettings.shared
 
     @State private var numberFormat: ReceiptNumberFormat = .yearMonth
     @State private var customPrefix: String = ""
     @State private var defaultTax: Int = 21
     @State private var showingRenumberConfirm = false
-    @State private var categories: [String] = ReceiptCollection.defaultCategories
     @State private var newCategory: String = ""
 
     private var collection: ReceiptCollection? {
@@ -95,14 +96,14 @@ struct CollectionSettingsView: View {
 
                 // MARK: Categories
                 Section {
-                    ForEach(categories, id: \.self) { cat in
+                    ForEach(appSettings.categories, id: \.self) { cat in
                         Text(cat)
                     }
                     .onDelete { offsets in
-                        categories.remove(atOffsets: offsets)
+                        appSettings.categories.remove(atOffsets: offsets)
                     }
                     .onMove { from, to in
-                        categories.move(fromOffsets: from, toOffset: to)
+                        appSettings.categories.move(fromOffsets: from, toOffset: to)
                     }
 
                     HStack {
@@ -110,8 +111,8 @@ struct CollectionSettingsView: View {
                             .autocorrectionDisabled()
                         Button {
                             let trimmed = newCategory.trimmingCharacters(in: .whitespaces)
-                            guard !trimmed.isEmpty, !categories.contains(trimmed) else { return }
-                            categories.append(trimmed)
+                            guard !trimmed.isEmpty, !appSettings.categories.contains(trimmed) else { return }
+                            appSettings.categories.append(trimmed)
                             newCategory = ""
                         } label: {
                             Image(systemName: "plus.circle.fill")
@@ -122,7 +123,7 @@ struct CollectionSettingsView: View {
                 } header: {
                     Text("Categories")
                 } footer: {
-                    Text("Swipe to delete, drag to reorder. Add custom categories for your receipts.")
+                    Text("Shared across all collections. Swipe to delete, drag to reorder.")
                 }
             }
             .navigationTitle("Collection Settings")
@@ -134,8 +135,7 @@ struct CollectionSettingsView: View {
                             collectionID,
                             numberFormat: numberFormat,
                             customPrefix: customPrefix,
-                            defaultTax: Double(defaultTax),
-                            categories: categories
+                            defaultTax: Double(defaultTax)
                         )
                         dismiss()
                     }
@@ -183,8 +183,7 @@ struct CollectionSettingsView: View {
                                         collectionID,
                                         numberFormat: numberFormat,
                                         customPrefix: customPrefix,
-                                        defaultTax: Double(defaultTax),
-                                        categories: categories
+                                        defaultTax: Double(defaultTax)
                                     )
                                     viewModel.renumberReceipts(in: collectionID)
                                     showingRenumberConfirm = false
@@ -214,7 +213,6 @@ struct CollectionSettingsView: View {
                 numberFormat = c.numberFormat
                 customPrefix = c.customPrefix
                 defaultTax = Int(c.defaultTaxPercentage)
-                categories = c.categories
             }
         }
     }

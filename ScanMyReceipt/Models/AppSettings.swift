@@ -71,14 +71,44 @@ final class AppSettings: ObservableObject {
 
     private enum Key: String {
         case defaultTaxPercentage
+        case categories
     }
+
+    /// Global categories shared across all collections.
+    static let defaultCategories: [String] = [
+        "Travel",
+        "Representation",
+        "Office",
+        "Car Expenses",
+        "Food & Drinks",
+        "Subscriptions",
+        "Equipment",
+        "Telecom",
+        "Insurance",
+        "Other",
+    ]
 
     @Published var defaultTaxPercentage: Double {
         didSet { defaults.set(defaultTaxPercentage, forKey: Key.defaultTaxPercentage.rawValue) }
     }
 
+    @Published var categories: [String] {
+        didSet {
+            if let data = try? JSONEncoder().encode(categories) {
+                defaults.set(data, forKey: Key.categories.rawValue)
+            }
+        }
+    }
+
     private init() {
         let storedTax = defaults.double(forKey: Key.defaultTaxPercentage.rawValue)
         self.defaultTaxPercentage = storedTax > 0 ? storedTax : 21.0
+
+        if let data = defaults.data(forKey: Key.categories.rawValue),
+           let stored = try? JSONDecoder().decode([String].self, from: data) {
+            self.categories = stored
+        } else {
+            self.categories = Self.defaultCategories
+        }
     }
 }

@@ -90,7 +90,6 @@ struct CollectionDetailView: View {
                     ReceiptEditView(
                         receipt: receipt,
                         isNew: isNew,
-                        categories: collection.categories,
                         onSave: { updated in
                             if isNew {
                                 viewModel.addReceipt(updated, to: collectionID)

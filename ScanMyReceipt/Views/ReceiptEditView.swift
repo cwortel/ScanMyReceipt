@@ -4,7 +4,6 @@ import SwiftUI
 struct ReceiptEditView: View {
     @State var receipt: Receipt
     let isNew: Bool
-    let categories: [String]
     var onSave: (Receipt) -> Void
     var onCancel: () -> Void
 
@@ -13,16 +12,18 @@ struct ReceiptEditView: View {
     @State private var selectedTax: Int
     @State private var selectedCategory: String
 
+    /// Global categories from AppSettings.
+    private var categories: [String] { AppSettings.shared.categories }
+
     // Initialise @State from the receipt directly instead of relying on
     // .onAppear, which can fire too late or be skipped in SwiftUI sheets.
-    init(receipt: Receipt, isNew: Bool, categories: [String] = ReceiptCollection.defaultCategories,
+    init(receipt: Receipt, isNew: Bool,
          onSave: @escaping (Receipt) -> Void, onCancel: @escaping () -> Void) {
         _receipt = State(initialValue: receipt)
         _totalAmountText = State(initialValue: receipt.totalAmount > 0 ? receipt.totalAmount.dutchFormatted : "")
         _selectedTax = State(initialValue: Int(receipt.taxPercentage))
         _selectedCategory = State(initialValue: receipt.category)
         self.isNew = isNew
-        self.categories = categories
         self.onSave = onSave
         self.onCancel = onCancel
     }
@@ -68,15 +69,13 @@ struct ReceiptEditView: View {
 
                 // MARK: Category
                 Section("Category") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            categoryChip("", label: "None")
-                            ForEach(categories, id: \.self) { cat in
-                                categoryChip(cat)
-                            }
+                    Picker("Category", selection: $selectedCategory) {
+                        Text("None").tag("")
+                        ForEach(categories, id: \.self) { cat in
+                            Text(cat).tag(cat)
                         }
-                        .padding(.vertical, 4)
                     }
+                    .pickerStyle(.menu)
                 }
 
                 // MARK: Amounts
@@ -154,21 +153,6 @@ struct ReceiptEditView: View {
                 FullScreenImageView(fileName: fileName)
             }
         }
-    }
-
-    // MARK: - Category chip
-
-    @ViewBuilder
-    private func categoryChip(_ value: String, label: String? = nil) -> some View {
-        let isSelected = selectedCategory == value
-        Text(label ?? value)
-            .font(.subheadline.weight(.medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(isSelected ? Color.accentColor : Color(.systemGray5))
-            .foregroundColor(isSelected ? .white : .primary)
-            .clipShape(Capsule())
-            .onTapGesture { selectedCategory = value }
     }
 
     // MARK: - Tax button
