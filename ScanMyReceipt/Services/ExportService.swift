@@ -83,7 +83,7 @@ class ExportService {
 
     /// Generates a CSV file with receipt data (comma-separated, dot decimals).
     func generateCSV(for collection: ReceiptCollection) -> URL? {
-        var csv = "Receipt Number,Shop Name,Date,Total Amount,Amount Without Tax,Tax Percentage\n"
+        var csv = "Receipt Number,Shop Name,Date,Total Amount,Amount Without Tax,Tax Percentage,Category\n"
 
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd"
@@ -95,7 +95,8 @@ class ExportService {
                 df.string(from: r.purchaseDate),
                 String(format: "%.2f", r.totalAmount),
                 String(format: "%.2f", r.amountWithoutTax),
-                String(format: "%.1f", r.taxPercentage)
+                String(format: "%.1f", r.taxPercentage),
+                csvEscape(r.category),
             ].joined(separator: ",") + "\n"
         }
 

@@ -28,6 +28,7 @@
 		AA100019 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100019 /* SplashScreenView.swift */; };
 		AA100018 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB100018 /* Assets.xcassets */; };
 		AA100022 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AB100022 /* Localizable.xcstrings */; };
+		AA100023 /* CategoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100023 /* CategoryService.swift */; };
 		AA200001 /* ScanMyReceiptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB200001 /* ScanMyReceiptTests.swift */; };
 		AA300001 /* ScanMyReceiptUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB300001 /* ScanMyReceiptUITests.swift */; };
 /* End PBXBuildFile section */
@@ -71,6 +72,7 @@
 		AB100020 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		AB100021 /* CollectionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSettingsView.swift; sourceTree = "<group>"; };
 		AB100022 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		AB100023 /* CategoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryService.swift; sourceTree = "<group>"; };
 		AB100018 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AB200001 /* ScanMyReceiptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMyReceiptTests.swift; sourceTree = "<group>"; };
 		AB300001 /* ScanMyReceiptUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMyReceiptUITests.swift; sourceTree = "<group>"; };
@@ -155,6 +157,7 @@
 				AB100005 /* ScannerService.swift */,
 				AB100006 /* ExportService.swift */,
 			AB100017 /* TextRecognitionService.swift */,
+			AB100023 /* CategoryService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -366,6 +369,7 @@
 				AA100019 /* SplashScreenView.swift in Sources */,
 				AA100020 /* AppSettings.swift in Sources */,
 				AA100021 /* CollectionSettingsView.swift in Sources */,
+				AA100023 /* CategoryService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

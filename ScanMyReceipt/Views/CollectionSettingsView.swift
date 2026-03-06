@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Per-collection settings: numbering format, custom prefix, default tax.
+/// Per-collection settings: numbering format, custom prefix, default tax, categories.
 struct CollectionSettingsView: View {
     let collectionID: UUID
     @EnvironmentObject var viewModel: CollectionListViewModel
@@ -10,6 +10,8 @@ struct CollectionSettingsView: View {
     @State private var customPrefix: String = ""
     @State private var defaultTax: Int = 21
     @State private var showingRenumberConfirm = false
+    @State private var categories: [String] = ReceiptCollection.defaultCategories
+    @State private var newCategory: String = ""
 
     private var collection: ReceiptCollection? {
         viewModel.collection(for: collectionID)
@@ -90,6 +92,38 @@ struct CollectionSettingsView: View {
                 } footer: {
                     Text("Pre-selected tax rate for newly scanned receipts. OCR may override this if it detects a tax rate on the receipt.")
                 }
+
+                // MARK: Categories
+                Section {
+                    ForEach(categories, id: \.self) { cat in
+                        Text(cat)
+                    }
+                    .onDelete { offsets in
+                        categories.remove(atOffsets: offsets)
+                    }
+                    .onMove { from, to in
+                        categories.move(fromOffsets: from, toOffset: to)
+                    }
+
+                    HStack {
+                        TextField("New category", text: $newCategory)
+                            .autocorrectionDisabled()
+                        Button {
+                            let trimmed = newCategory.trimmingCharacters(in: .whitespaces)
+                            guard !trimmed.isEmpty, !categories.contains(trimmed) else { return }
+                            categories.append(trimmed)
+                            newCategory = ""
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.accentColor)
+                        }
+                        .disabled(newCategory.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                } header: {
+                    Text("Categories")
+                } footer: {
+                    Text("Swipe to delete, drag to reorder. Add custom categories for your receipts.")
+                }
             }
             .navigationTitle("Collection Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -100,7 +134,8 @@ struct CollectionSettingsView: View {
                             collectionID,
                             numberFormat: numberFormat,
                             customPrefix: customPrefix,
-                            defaultTax: Double(defaultTax)
+                            defaultTax: Double(defaultTax),
+                            categories: categories
                         )
                         dismiss()
                     }
@@ -148,7 +183,8 @@ struct CollectionSettingsView: View {
                                         collectionID,
                                         numberFormat: numberFormat,
                                         customPrefix: customPrefix,
-                                        defaultTax: Double(defaultTax)
+                                        defaultTax: Double(defaultTax),
+                                        categories: categories
                                     )
                                     viewModel.renumberReceipts(in: collectionID)
                                     showingRenumberConfirm = false
@@ -178,6 +214,7 @@ struct CollectionSettingsView: View {
                 numberFormat = c.numberFormat
                 customPrefix = c.customPrefix
                 defaultTax = Int(c.defaultTaxPercentage)
+                categories = c.categories
             }
         }
     }

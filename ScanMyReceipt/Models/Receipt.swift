@@ -14,6 +14,8 @@ struct Receipt: Identifiable, Codable, Equatable {
     var amountWithoutTax: Double = 0.0
     /// VAT percentage (e.g. 21.0 for 21%)
     var taxPercentage: Double = 21.0
+    /// Category label (e.g. "Travel", "Office"). Empty = uncategorised.
+    var category: String = ""
     /// File names of scanned images stored on disk
     var imageFileNames: [String] = []
 
@@ -38,4 +40,20 @@ struct ReceiptCollection: Identifiable, Codable, Equatable {
     var customPrefix: String = ""
     /// Default tax percentage for new receipts in this collection.
     var defaultTaxPercentage: Double = 21.0
+    /// User-defined categories available in this collection.
+    var categories: [String] = ReceiptCollection.defaultCategories
+
+    /// Built-in categories offered to new collections.
+    static let defaultCategories: [String] = [
+        "Travel",
+        "Representation",
+        "Office",
+        "Car Expenses",
+        "Food & Drinks",
+        "Subscriptions",
+        "Equipment",
+        "Telecom",
+        "Insurance",
+        "Other",
+    ]
 }

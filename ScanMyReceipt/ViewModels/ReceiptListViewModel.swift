@@ -112,11 +112,12 @@ class CollectionListViewModel: ObservableObject {
     }
 
     /// Updates collection-level settings (format, prefix, tax).
-    func updateCollectionSettings(_ collectionID: UUID, numberFormat: ReceiptNumberFormat, customPrefix: String, defaultTax: Double) {
+    func updateCollectionSettings(_ collectionID: UUID, numberFormat: ReceiptNumberFormat, customPrefix: String, defaultTax: Double, categories: [String]) {
         guard let ci = collections.firstIndex(where: { $0.id == collectionID }) else { return }
         collections[ci].numberFormat = numberFormat
         collections[ci].customPrefix = customPrefix
         collections[ci].defaultTaxPercentage = defaultTax
+        collections[ci].categories = categories
         save()
     }
 }

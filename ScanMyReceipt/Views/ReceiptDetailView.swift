@@ -90,6 +90,7 @@ struct CollectionDetailView: View {
                     ReceiptEditView(
                         receipt: receipt,
                         isNew: isNew,
+                        categories: collection.categories,
                         onSave: { updated in
                             if isNew {
                                 viewModel.addReceipt(updated, to: collectionID)
@@ -207,6 +208,12 @@ struct CollectionDetailView: View {
                     }
                 }
 
+                // Auto-suggest category from shop name + OCR text
+                receipt.category = CategoryService.suggestCategory(
+                    shopName: receipt.shopName,
+                    ocrText: recognizedData.rawText
+                )
+
                 viewModel.addReceipt(receipt, to: collectionID, autoSave: false)
                 processNext(index: index + 1)
             }
@@ -298,6 +305,15 @@ struct ReceiptRow: View {
                     Text(receipt.purchaseDate, style: .date)
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    if !receipt.category.isEmpty {
+                        Text(receipt.category)
+                            .font(.caption2.weight(.medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.accentColor.opacity(0.15))
+                            .foregroundColor(.accentColor)
+                            .clipShape(Capsule())
+                    }
                     Spacer()
                     Text(receipt.totalAmount.euroFormatted)
                         .font(.subheadline)

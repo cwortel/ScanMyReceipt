@@ -10,6 +10,8 @@ struct RecognizedReceiptData {
     var totalAmount: Double?
     var taxPercentage: Double?
     var amountWithoutTax: Double?
+    /// The raw OCR text used for parsing (useful for category suggestion).
+    var rawText: String = ""
 }
 
 // MARK: - TextRecognitionService
@@ -120,7 +122,8 @@ class TextRecognitionService {
 
         group.notify(queue: .global(qos: .userInitiated)) {
             let combined = texts.joined(separator: "\n")
-            let data = self.parseReceiptData(from: combined)
+            var data = self.parseReceiptData(from: combined)
+            data.rawText = combined
             DispatchQueue.main.async {
                 completion(data)
             }
