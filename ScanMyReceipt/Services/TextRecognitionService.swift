@@ -149,10 +149,46 @@ class TextRecognitionService {
         filter.setValue(point(observation.bottomLeft), forKey: "inputBottomLeft")
         filter.setValue(point(observation.bottomRight), forKey: "inputBottomRight")
 
-        guard let output = filter.outputImage else { return nil }
+        guard let corrected = filter.outputImage else { return nil }
+
+        // Apply document-style enhancement to match scanner output
+        let enhanced = enhanceDocument(corrected)
+
         let context = CIContext()
-        guard let result = context.createCGImage(output, from: output.extent) else { return nil }
+        guard let result = context.createCGImage(enhanced, from: enhanced.extent) else { return nil }
         return UIImage(cgImage: result)
+    }
+
+    /// Applies document-style enhancement: lifts shadows, boosts contrast,
+    /// and sharpens text to approximate the VisionKit scanner look.
+    private static func enhanceDocument(_ image: CIImage) -> CIImage {
+        // 1. Lift shadows, reduce highlight clipping
+        var result = image
+        if let shadowFilter = CIFilter(name: "CIHighlightShadowAdjust") {
+            shadowFilter.setValue(result, forKey: kCIInputImageKey)
+            shadowFilter.setValue(0.6, forKey: "inputShadowAmount")      // lighten shadows
+            shadowFilter.setValue(0.9, forKey: "inputHighlightAmount")   // slight highlight reduction
+            if let output = shadowFilter.outputImage { result = output }
+        }
+
+        // 2. Boost contrast and brightness
+        if let colorFilter = CIFilter(name: "CIColorControls") {
+            colorFilter.setValue(result, forKey: kCIInputImageKey)
+            colorFilter.setValue(1.15, forKey: kCIInputContrastKey)       // moderate contrast boost
+            colorFilter.setValue(0.05, forKey: kCIInputBrightnessKey)     // slight brightness lift
+            colorFilter.setValue(0.0, forKey: kCIInputSaturationKey)      // desaturate (receipt = B&W-ish)
+            if let output = colorFilter.outputImage { result = output }
+        }
+
+        // 3. Sharpen text edges
+        if let sharpFilter = CIFilter(name: "CIUnsharpMask") {
+            sharpFilter.setValue(result, forKey: kCIInputImageKey)
+            sharpFilter.setValue(1.5, forKey: kCIInputRadiusKey)
+            sharpFilter.setValue(0.5, forKey: kCIInputIntensityKey)
+            if let output = sharpFilter.outputImage { result = output }
+        }
+
+        return result
     }
 
     /// Runs OCR on all images, combines text, and parses receipt fields.
